@@ -1,0 +1,2490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minions RPG 3D - Armas & Habilidades</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Orbitron:wght@600;800;900&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1, h2, h3, .font-heading {
+            font-family: 'Fredoka One', cursive;
+        }
+        .font-tech {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020617;
+            color: #ffffff;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+
+        /* Cutscene cinematográfica do especial Banana */
+        #banana-cinematic { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; background: radial-gradient(circle at center, rgba(120,75,0,.18), rgba(2,6,23,.72) 70%); }
+        #banana-cinematic.active { display: flex; animation: bananaCineIn .25s ease-out both; }
+        #banana-cinematic .cine-bar { position: absolute; left: 0; right: 0; height: 9vh; background: #020617; box-shadow: 0 0 25px rgba(0,0,0,.7); }
+        #banana-cinematic .cine-bar.top { top: 0; transform: translateY(-100%); }
+        #banana-cinematic .cine-bar.bottom { bottom: 0; transform: translateY(100%); }
+        #banana-cinematic.active .cine-bar.top { animation: cineBarTop .35s ease-out forwards; }
+        #banana-cinematic.active .cine-bar.bottom { animation: cineBarBottom .35s ease-out forwards; }
+        #banana-cinematic .cine-copy { position: relative; text-align: center; padding: 1.5rem; max-width: 900px; transform: scale(.72); opacity: 0; }
+        #banana-cinematic.active .cine-copy { animation: cineTitle .45s cubic-bezier(.2,.8,.2,1) .08s forwards; }
+        #banana-cinematic .cine-eyebrow { color: #67e8f9; font: 800 11px 'Orbitron',sans-serif; letter-spacing: .38em; text-transform: uppercase; text-shadow: 0 0 18px #22d3ee; }
+        #banana-cinematic .cine-title { margin: .35rem 0; color: #fde047; font: 900 clamp(2.4rem,8vw,6.5rem) 'Fredoka One',cursive; line-height: .98; text-shadow: 0 5px 0 #854d0e, 0 0 28px rgba(250,204,21,.8); }
+        #banana-cinematic .cine-subtitle { color: white; font: 900 clamp(.75rem,2vw,1.05rem) 'Orbitron',sans-serif; letter-spacing: .18em; text-transform: uppercase; }
+        #banana-cinematic .cine-fruit { font-size: clamp(4rem,13vw,9rem); filter: drop-shadow(0 0 28px rgba(250,204,21,.85)); animation: bananaFloat .55s ease-in-out infinite alternate; }
+        #banana-cinematic.impact { animation: cineImpact .24s ease-out; background: radial-gradient(circle, rgba(250,204,21,.38), rgba(2,6,23,.86) 68%); }
+        #banana-cinematic.impact .cine-title { color: #fff7ad; text-shadow: 0 0 14px #facc15, 0 0 42px #f59e0b; }
+        @keyframes bananaCineIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes cineBarTop { to { transform: translateY(0) } }
+        @keyframes cineBarBottom { to { transform: translateY(0) } }
+        @keyframes cineTitle { to { transform: scale(1); opacity: 1 } }
+        @keyframes bananaFloat { from { transform: translateY(5px) rotate(-5deg) scale(.96) } to { transform: translateY(-8px) rotate(5deg) scale(1.05) } }
+        @keyframes cineImpact { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-8px) } 50% { transform: translateX(8px) } 75% { transform: translateX(-4px) } }
+        @media (prefers-reduced-motion: reduce) { #banana-cinematic *, #banana-cinematic.active .cine-copy { animation-duration: .01ms !important; } }
+
+        /* Glassmorphic UI Overlay */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(254, 224, 26, 0.35);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.03) 100%);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(254, 224, 26, 0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.3);
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            border-color: rgba(254, 224, 26, 0.9);
+            box-shadow: 0 8px 25px rgba(254, 224, 26, 0.5), inset 0 1px 2px rgba(255,255,255,0.5);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: #facc15;
+            box-shadow: 0 0 25px rgba(250, 204, 21, 0.4);
+            transform: translateY(-5px);
+        }
+
+        /* Floating Damage Text */
+        @keyframes floatDamage {
+            0% { opacity: 0; transform: translateY(20px) scale(0.6); }
+            20% { opacity: 1; transform: translateY(-10px) scale(1.3); }
+            80% { opacity: 1; transform: translateY(-35px) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+        }
+        .floating-text {
+            position: absolute;
+            font-family: 'Fredoka One', cursive;
+            pointer-events: none;
+            z-index: 50;
+            animation: floatDamage 1.3s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            text-shadow: 0 0 10px rgba(0,0,0,0.9), 2px 2px 0 #000, -2px -2px 0 #000;
+        }
+
+        .status-badge {
+            animation: pulseBadge 1.5s infinite ease-in-out;
+        }
+        @keyframes pulseBadge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(254, 224, 26, 0.5); border-radius: 4px; }
+
+        /* Seleção de personagens: área rolável mesmo com o body travado */
+        #screen-char-select {
+            max-height: calc(100dvh - 105px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            justify-content: flex-start;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(254, 224, 26, 0.75) rgba(0, 0, 0, 0.3);
+            padding-bottom: 5.5rem;
+        }
+        #screen-char-select::-webkit-scrollbar { width: 8px; }
+        #screen-char-select::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 8px; }
+        #screen-char-select::-webkit-scrollbar-thumb { background: rgba(254, 224, 26, 0.75); border-radius: 8px; }
+        #scroll-down-btn {
+            position: fixed;
+            right: max(14px, env(safe-area-inset-right));
+            bottom: max(14px, env(safe-area-inset-bottom));
+            z-index: 80;
+            box-shadow: 0 0 22px rgba(250, 204, 21, 0.4);
+        }
+
+
+        /* Layout de combate: o painel inferior não empurra a arena para fora da tela */
+        #ui-layer { min-height: 0; }
+        #screen-combat { min-height: 0; gap: 8px; }
+        #screen-combat > .grid { flex: 0 0 auto; max-height: min(36dvh, 330px); min-height: 0; align-items: stretch; }
+        #screen-combat .combat-actions-panel { min-height: 0; max-height: min(36dvh, 330px); overflow-y: auto; overscroll-behavior: contain; }
+        #skills-container { min-height: 0; align-content: start; }
+        #battle-log-panel { min-height: 0; max-height: min(36dvh, 330px); overflow: hidden; }
+        #battle-log { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+        #battle-log-toggle { flex: 0 0 auto; }
+        @media (max-width: 767px) {
+            #ui-layer { padding-top: 6px; padding-bottom: 6px; }
+            #screen-combat { padding-top: 0; padding-bottom: 0; gap: 6px; }
+            #screen-combat > .flex.justify-between.items-start { gap: 6px; }
+            #screen-combat > .flex.justify-between.items-start > div { width: min(48%, 210px); padding: 7px; }
+            #screen-combat > .grid { grid-template-columns: minmax(0, 1fr); gap: 5px; max-height: 42dvh; }
+            #screen-combat .combat-actions-panel { max-height: 33dvh; padding: 8px; }
+            #banana-charge-panel { padding: 6px; margin-bottom: 6px; }
+            #skills-container { max-height: 15dvh; overflow-y: auto; overscroll-behavior: contain; }
+            #battle-log-panel { max-height: 28px; height: 28px; padding: 5px 8px; transition: height .2s ease, max-height .2s ease; }
+            #battle-log-panel.log-open { height: 17dvh; max-height: 17dvh; }
+            #battle-log { max-height: calc(17dvh - 32px); }
+            #battle-log-panel.log-open #battle-log { display: block; }
+            #battle-log-panel:not(.log-open) #battle-log { display: none; }
+            #battle-log-panel > div:first-child { margin-bottom: 0; }
+            #battle-log-toggle { font-size: 10px; line-height: 1; padding: 3px 7px; }
+            #screen-combat footer { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 3D WEBGL CANVAS -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- OVERLAY UI LAYER -->
+    <div id="ui-layer" class="relative z-10 container mx-auto px-3 py-3 max-w-6xl h-full flex flex-col justify-between pointer-events-none">
+
+        <!-- HEADER BANNER -->
+        <header class="pointer-events-auto text-center flex justify-between items-center px-4 glass-panel py-2.5 rounded-2xl">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl sm:text-4xl animate-bounce">🍌</span>
+                <div class="text-left">
+                    <h1 class="text-2xl sm:text-3xl font-heading text-yellow-400 tracking-wider drop-shadow-[0_0_15px_rgba(254,224,26,0.8)]">
+                        MINIONS RPG 3D
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-cyan-300 font-tech uppercase tracking-widest">Laboratório do Gru • Sistema de Marcas & Desgaste</p>
+                </div>
+            </div>
+
+            <!-- TURN ORDER HUD -->
+            <div id="timeline-hud" class="hidden glass-panel px-4 py-1.5 rounded-full flex items-center gap-3 border border-yellow-400/40">
+                <span class="text-[10px] text-slate-300 font-tech font-bold uppercase">Ordem de Turno:</span>
+                <div id="timeline-avatars" class="flex items-center gap-2"></div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="confirmRestartMatch()" id="restart-midgame-btn" class="hidden glass-btn px-3 py-1.5 rounded-xl text-xs font-bold text-yellow-300 border-yellow-400/60 hover:border-yellow-400">
+                    🔄 Reiniciar
+                </button>
+                <button onclick="toggleMute()" id="mute-btn" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-bold text-slate-200">
+                    🔊 Som: ON
+                </button>
+            </div>
+        </header>
+
+        <!-- SCREEN 1: GAME MODE SELECTION -->
+        <section id="screen-mode" class="pointer-events-auto my-auto flex flex-col justify-center items-center py-6">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 max-w-2xl w-full text-center relative overflow-hidden border-2 border-yellow-400/50">
+                <h2 class="text-3xl sm:text-4xl font-heading text-yellow-300 mb-2">Simulador Tático 3D do Gru</h2>
+                <p class="text-slate-300 text-xs sm:text-sm mb-8">Agora com danos em tempo real! Os Minions ficam sujos, fedidos (verdes), congelados e marcados de combate!</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- PvE -->
+                    <button onclick="selectGameMode('pve')" class="glass-btn p-6 rounded-2xl flex flex-col items-center group cursor-pointer border-2 border-cyan-500/50">
+                        <div class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                            <span class="text-4xl">🤖</span>
+                        </div>
+                        <h3 class="text-xl font-heading text-cyan-300 mb-1">Treino PvE (VS IA)</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">Enfrente o Evil Minion PX-41 ou robôs com efeitos e desgaste realistas.</p>
+                    </button>
+
+                    <!-- STORY MODE -->
+                    <button onclick="openStoryCampaign()" class="glass-btn p-6 rounded-2xl flex flex-col items-center group cursor-pointer border-2 border-yellow-400/60">
+                        <div class="w-20 h-20 rounded-full bg-yellow-400/20 flex items-center justify-center mb-3 group-hover:scale-110 transition shadow-[0_0_20px_rgba(250,204,21,0.35)]">
+                            <span class="text-4xl">🎬</span>
+                        </div>
+                        <h3 class="text-xl font-heading text-yellow-200 mb-1">Modo História</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">5 capítulos cinematográficos, chefões, Minions desbloqueáveis e melhorias permanentes.</p>
+                    </button>
+
+                    <!-- PvP -->
+                    <button onclick="selectGameMode('pvp')" class="glass-btn p-6 rounded-2xl flex flex-col items-center group cursor-pointer border-2 border-purple-500/50">
+                        <div class="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+                            <span class="text-4xl">⚔️</span>
+                        </div>
+                        <h3 class="text-xl font-heading text-purple-300 mb-1">Duelo PvP (1v1 Local)</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">Batalha tática em turnos entre 2 jogadores com física e marcas de luta.</p>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN STORY: CAMPAIGN MAP -->
+        <section id="screen-story" class="pointer-events-auto hidden my-auto flex flex-col items-center py-3 w-full">
+            <div class="glass-panel rounded-3xl p-5 sm:p-7 max-w-4xl w-full max-h-[78vh] overflow-y-auto custom-scroll border-2 border-yellow-400/50">
+                <div class="text-center mb-5">
+                    <p class="font-tech text-[10px] tracking-[0.35em] text-cyan-300 uppercase">Arquivo confidencial do Gru</p>
+                    <h2 class="text-3xl sm:text-4xl font-heading text-yellow-300 mt-1">A Operação Banana</h2>
+                    <p class="text-sm text-slate-300 mt-2">Uma campanha de 5 capítulos. Lute, evolua e descubra quem está por trás do PX-41.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5" id="story-chapter-list"></div>
+                <div id="story-progress-summary" class="rounded-2xl bg-slate-950/70 border border-cyan-500/30 p-4 mb-5 text-sm"></div>
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button onclick="startStoryCampaign()" id="story-start-btn" class="glass-btn px-6 py-3 rounded-xl text-sm font-extrabold text-yellow-200">▶ Iniciar campanha</button>
+                    <button onclick="changeStoryHero()" class="glass-btn px-5 py-3 rounded-xl text-sm font-bold text-cyan-200">👤 Trocar Minion</button>
+                    <button onclick="showScreen('screen-mode')" class="glass-btn px-5 py-3 rounded-xl text-sm font-bold text-slate-200">← Menu principal</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: CHARACTER SELECTION GRID -->
+        <section id="screen-char-select" class="pointer-events-auto hidden my-auto flex flex-col justify-center items-center py-4">
+            <div class="w-full max-w-5xl">
+                <div class="text-center mb-4">
+                    <h2 id="select-title-indicator" class="text-2xl sm:text-3xl font-heading text-yellow-300">
+                        Jogador 1: Escolha seu Minion
+                    </h2>
+                    <p class="text-xs text-cyan-300 font-semibold mt-0.5">Observe a prévia em 3D das armas e selecione o combatente</p>
+                </div>
+
+                <div id="minions-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+
+                <div class="flex justify-center gap-3 flex-wrap">
+                    <button onclick="showScreen('screen-mode')" class="glass-btn px-6 py-2 rounded-xl text-xs font-bold text-slate-200">
+                        ← Menu Principal
+                    </button>
+                    <button onclick="scrollCharacterSelection('down')" class="glass-btn px-6 py-2 rounded-xl text-xs font-bold text-yellow-200">
+                        ⬇ Descer para ver mais Minions
+                    </button>
+                </div>
+            </div>
+            <button id="scroll-down-btn" onclick="scrollCharacterSelection('down')" class="glass-btn px-4 py-3 rounded-full text-sm font-extrabold text-yellow-200" aria-label="Descer a lista de personagens" title="Descer para ver mais personagens">
+                ⬇ Descer
+            </button>
+        </section>
+
+        <!-- SCREEN 3: COMBAT ARENA HUD -->
+        <section id="screen-combat" class="pointer-events-none hidden flex-1 flex flex-col justify-between py-2 relative">
+            
+            <!-- TOP PLAYER STATS OVERLAYS -->
+            <div class="flex justify-between items-start w-full">
+                <!-- PLAYER 1 HUD OVERLAY -->
+                <div class="pointer-events-auto w-52 sm:w-68 glass-panel p-3 rounded-2xl border-l-4 border-l-yellow-400">
+                    <div class="flex justify-between items-center text-xs font-bold mb-1">
+                        <span id="p1-hud-name" class="text-yellow-300 font-heading truncate text-sm">Kevin</span>
+                        <span id="p1-hud-hp-text" class="text-slate-100 font-tech text-[11px]">135/135</span>
+                    </div>
+                    <div class="w-full bg-slate-950/90 rounded-full h-3.5 overflow-hidden border border-slate-700">
+                        <div id="p1-hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-green-400 h-full transition-all duration-300 w-full"></div>
+                    </div>
+                    <!-- STATUS BADGES CONTAINER -->
+                    <div id="p1-status-badges" class="flex flex-wrap gap-1 mt-1.5 min-h-[22px]"></div>
+                    <div class="flex justify-between text-[10px] text-slate-300 mt-1 font-tech">
+                        <span>⚔️ ATK: <b id="p1-hud-atk" class="text-red-400">20</b></span>
+                        <span>🛡 DEF: <b id="p1-hud-def" class="text-cyan-300">15</b></span>
+                        <span>⚡ SPD: <b id="p1-hud-spd" class="text-yellow-400">12</b></span>
+                    </div>
+                </div>
+
+                <!-- PLAYER 2 HUD OVERLAY -->
+                <div class="pointer-events-auto w-52 sm:w-68 glass-panel p-3 rounded-2xl border-r-4 border-r-purple-500 text-right">
+                    <div class="flex justify-between items-center text-xs font-bold mb-1">
+                        <span id="p2-hud-hp-text" class="text-slate-100 font-tech text-[11px]">130/130</span>
+                        <span id="p2-hud-name" class="text-purple-300 font-heading truncate text-sm">Evil Minion</span>
+                    </div>
+                    <div class="w-full bg-slate-950/90 rounded-full h-3.5 overflow-hidden border border-slate-700">
+                        <div id="p2-hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-green-400 h-full transition-all duration-300 w-full ml-auto"></div>
+                    </div>
+                    <!-- STATUS BADGES CONTAINER -->
+                    <div id="p2-status-badges" class="flex flex-wrap gap-1 mt-1.5 justify-end min-h-[22px]"></div>
+                    <div class="flex justify-between text-[10px] text-slate-300 mt-1 font-tech">
+                        <span>⚡ SPD: <b id="p2-hud-spd" class="text-yellow-400">14</b></span>
+                        <span>🛡 DEF: <b id="p2-hud-def" class="text-cyan-300">12</b></span>
+                        <span>⚔️ ATK: <b id="p2-hud-atk" class="text-red-400">25</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM CONTROLS & LOG BOX -->
+            <div class="pointer-events-auto grid grid-cols-1 md:grid-cols-3 gap-2 mt-auto">
+                <!-- Action Buttons Box -->
+                <div class="md:col-span-2 glass-panel rounded-2xl p-3 flex flex-col justify-between combat-actions-panel">
+                    <div class="text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                        <span class="uppercase text-cyan-300 font-tech">Arsenal & Habilidades:</span>
+                        <span id="active-player-tag" class="text-yellow-400 font-heading text-sm">Turno de Kevin</span>
+                    </div>
+                    <div id="banana-charge-panel" class="mb-2 rounded-xl border border-yellow-400/40 bg-yellow-950/30 p-2">
+                        <div class="flex items-center justify-between gap-2 text-[10px] font-bold">
+                            <span class="text-yellow-200">🍌 ESPECIAL: BANANA GIGANTE</span>
+                            <span id="banana-charge-text" class="text-slate-200 font-tech">Carga 0/100</span>
+                        </div>
+                        <div class="mt-1 h-2 rounded-full overflow-hidden bg-slate-950 border border-yellow-900/70">
+                            <div id="banana-charge-bar" class="h-full w-0 bg-gradient-to-r from-yellow-500 via-yellow-300 to-lime-300 transition-all duration-300"></div>
+                        </div>
+                        <div id="banana-charge-state" class="mt-1 text-[9px] text-slate-400">Cause dano para carregar o especial!</div>
+                    </div>
+                    <div id="skills-container" class="grid grid-cols-3 gap-2"></div>
+                </div>
+
+                <!-- Combat Log -->
+                <div id="battle-log-panel" class="glass-panel rounded-2xl p-2.5 flex flex-col h-28 md:h-auto">
+                    <div class="text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-1 flex items-center justify-between gap-2 font-tech">
+                        <span>📜 Log do Laboratório 3D</span>
+                        <button id="battle-log-toggle" type="button" onclick="toggleBattleLog()" class="glass-btn rounded-lg px-2 py-1 text-yellow-100" aria-expanded="false" aria-controls="battle-log">＋ Log</button>
+                    </div>
+                    <div id="battle-log" class="flex-1 overflow-y-auto text-[11px] space-y-1 custom-scroll font-medium pr-1"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="pointer-events-auto text-center text-[10px] text-slate-400 py-1">
+            Minions RPG 3D • Sistema Dinâmico de Armas & Desgaste Visual
+        </footer>
+
+    </div>
+
+
+    <!-- CUTSCENE: BANANA GIGANTE -->
+    <div id="banana-cinematic" aria-hidden="true">
+        <div class="cine-bar top"></div><div class="cine-bar bottom"></div>
+        <div class="cine-copy">
+            <div class="cine-fruit" id="banana-cine-fruit">🍌</div>
+            <div class="cine-eyebrow" id="banana-cine-eyebrow">ESPECIAL CARREGADO</div>
+            <div class="cine-title" id="banana-cine-title">BANANA GIGANTE!</div>
+            <div class="cine-subtitle" id="banana-cine-subtitle">PREPARE-SE PARA O IMPACTO</div>
+        </div>
+    </div>
+
+    <!-- MODAL: VICTORY / GAME OVER -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel rounded-3xl border-2 border-yellow-400 p-6 max-w-md w-full text-center shadow-2xl">
+            <div class="text-6xl mb-2 animate-bounce">🏆</div>
+            <h2 id="winner-title" class="text-3xl font-heading text-yellow-300 mb-1">VITÓRIA!</h2>
+            <p id="winner-desc" class="text-slate-300 text-xs mb-4">O campeão dominou o laboratório 3D do Gru!</p>
+            <div id="story-reward-panel" class="hidden text-left rounded-2xl bg-slate-950/80 border border-yellow-400/40 p-3 mb-4"></div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="restartMatch()" class="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-heading text-lg font-bold transition shadow-lg">
+                    🔄 Jogar Novamente
+                </button>
+                <button onclick="chooseAnotherMinion()" id="victory-change-minion-btn" class="w-full py-2 rounded-xl glass-btn text-slate-200 text-xs font-bold">
+                    👤 Escolher Outro Minion
+                </button>
+                <button onclick="storyContinueAfterVictory()" id="story-continue-btn" class="hidden w-full py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-heading text-sm font-bold transition">
+                    ➡️ Continuar história
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CINEMATIC STORY DIALOGUE -->
+    <div id="story-scene-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-lg z-[60] hidden items-center justify-center p-4">
+        <div class="relative overflow-hidden glass-panel rounded-3xl border-2 border-cyan-400/50 p-6 sm:p-9 max-w-2xl w-full shadow-[0_0_60px_rgba(34,211,238,0.18)]">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-yellow-300 to-purple-500"></div>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 flex items-center justify-center text-2xl">🎬</div>
+                <div><p class="font-tech text-[10px] tracking-[0.3em] text-cyan-300 uppercase">Cena da campanha</p><h2 id="story-scene-title" class="text-2xl sm:text-3xl font-heading text-yellow-300">A Operação Banana</h2></div>
+            </div>
+            <div class="rounded-2xl bg-slate-950/75 border border-white/10 p-5 min-h-[130px] flex items-center">
+                <p id="story-scene-text" class="text-base sm:text-lg leading-relaxed text-slate-100">Tudo começou no laboratório...</p>
+            </div>
+            <div class="flex justify-between items-center gap-3 mt-5">
+                <span id="story-scene-counter" class="font-tech text-[10px] text-slate-400">CENA 1 / 3</span>
+                <button onclick="advanceStoryScene()" id="story-scene-next" class="glass-btn px-6 py-3 rounded-xl text-sm font-extrabold text-yellow-200">Próximo diálogo →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. PROCEDURAL SOUND ENGINE (WEB AUDIO API)
+           ========================================================================== */
+
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playLaser() {
+                if (this.muted) return; this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playFreeze() {
+                if (this.muted) return; this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1800, this.ctx.currentTime + 0.35);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.35);
+            }
+
+            playFartGun() {
+                if (this.muted) return; this.init();
+                const bufferSize = this.ctx.sampleRate * 0.45;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(350, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 0.4);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+                noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            }
+
+            playExplosion() {
+                if (this.muted) return; this.init();
+                const bufferSize = this.ctx.sampleRate * 0.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(700, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + 0.5);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.75, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+                noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            }
+
+            playVoice(phrase) {
+                if (this.muted) return; this.init();
+                let freqs = [450, 650];
+                if (phrase === 'banana') freqs = [520, 420, 780];
+                if (phrase === 'beedo') freqs = [720, 920, 720, 920];
+                if (phrase === 'cough') freqs = [220, 180, 220, 180];
+
+                freqs.forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, this.ctx.currentTime + i * 0.09);
+                    gain.gain.setValueAtTime(0.22, this.ctx.currentTime + i * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.09 + 0.08);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + i * 0.09);
+                    osc.stop(this.ctx.currentTime + i * 0.09 + 0.08);
+                });
+            }
+
+            playVictory() {
+                if (this.muted) return; this.init();
+                [261, 329, 392, 523, 659].forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle'; osc.frequency.value = f;
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.3);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + i * 0.1);
+                    osc.stop(this.ctx.currentTime + i * 0.1 + 0.3);
+                });
+            }
+        }
+
+        const audio = new SoundEngine();
+        function toggleMute() {
+            audio.muted = !audio.muted;
+            document.getElementById('mute-btn').innerText = audio.muted ? '🔇 Som: OFF' : '🔊 Som: ON';
+        }
+
+        /* ==========================================================================
+           2. MINION STATS & WEAPONIZED SKILLS DATA
+           ========================================================================== */
+
+        const MINIONS = {
+            kevin: {
+                id: 'kevin', name: 'Minion Kevin', title: 'Líder Destemido',
+                eyes: 2, height: 'tall', hair: 'sprout',
+                stats: { hp: 135, maxHp: 135, attack: 20, defense: 15, initiative: 12, critChance: 15 },
+                skills: [
+                    { name: 'Bazuca de Peido', type: 'fart_gun', weapon: 'fartGun', mult: 1.1, cd: 0, currentCd: 0, icon: '💨', desc: 'Dispara nuvem verde concentrada (Enfedida o alvo).' },
+                    { name: 'Raio Congelante', type: 'freeze_ray', weapon: 'freezeRay', val: 8, cd: 2, currentCd: 0, icon: '❄️', desc: 'Congela e reduz defesa inimiga em bloco de gelo.' },
+                    { name: 'Mega Foguete Gru', type: 'rocket', weapon: 'rocketLauncher', mult: 2.1, cd: 3, currentCd: 0, icon: '🚀', desc: 'Foguete pesado que deixa fuligem e marcas.' }
+                ]
+            },
+            stuart: {
+                id: 'stuart', name: 'Minion Stuart', title: 'O Roqueiro Rebelde',
+                eyes: 1, height: 'medium', hair: 'combed',
+                stats: { hp: 115, maxHp: 115, attack: 25, defense: 10, initiative: 16, critChance: 25 },
+                skills: [
+                    { name: 'Onda do Ukulele', type: 'ukulele', weapon: 'ukulele', mult: 1.0, cd: 0, currentCd: 0, icon: '🎸', desc: 'Dispara anéis sônicos e faíscas elétricas.' },
+                    { name: 'Pistola Laser Sci-Fi', type: 'laser_gun', weapon: 'laserGun', mult: 1.55, cd: 2, currentCd: 0, icon: '🔫', desc: 'Tiro de plasma concentrado com queimadura.' },
+                    { name: 'Guitarrada Elétrica', type: 'ukulele_shock', weapon: 'ukulele', mult: 2.2, cd: 3, currentCd: 0, icon: '⚡', desc: 'Eletrocuta o inimigo com raio contínuo.' }
+                ]
+            },
+            bob: {
+                id: 'bob', name: 'Minion Bob', title: 'O Fofo & Ursinho Tim',
+                eyes: 2, height: 'short', hair: 'bald', heterochromia: true,
+                stats: { hp: 125, maxHp: 125, attack: 18, defense: 16, initiative: 13, critChance: 18 },
+                skills: [
+                    { name: 'Ataque de Ursinho', type: 'teddy_smash', weapon: 'teddyBear', mult: 1.0, cd: 0, currentCd: 0, icon: '🧸', desc: 'Golpe direto com o urso Tim.' },
+                    { name: 'Lança-Geléia Doce', type: 'jelly_gun', weapon: 'jellyGun', heal: 35, cd: 2, currentCd: 0, icon: '🍯', desc: 'Cura e limpa sujeira/status de fedor!' },
+                    { name: 'Disparo da Coroa', type: 'crown_laser', weapon: 'laserGun', mult: 2.0, cd: 3, currentCd: 0, icon: '👑', desc: 'Feixe real de plasma brilhante.' }
+                ]
+            },
+            evil: {
+                id: 'evil', name: 'Evil Minion PX-41', title: 'O Mutante Roxo',
+                eyes: 2, height: 'wild', hair: 'wild_purple', isEvil: true,
+                stats: { hp: 130, maxHp: 130, attack: 24, defense: 11, initiative: 14, critChance: 22 },
+                skills: [
+                    { name: 'Vômito Tóxico 3D', type: 'toxic_vomit', weapon: 'toxicGun', mult: 1.1, cd: 0, currentCd: 0, icon: '👾', desc: 'Ácido corrosivo roxo e viscoso.' },
+                    { name: 'Canhão de Plasma Roxo', type: 'purple_beam', weapon: 'purpleCannon', val: 8, cd: 2, currentCd: 0, icon: '🟣', desc: 'Canhão mutante com radiação.' },
+                    { name: 'Mordida Frenética', type: 'lifesteal', weapon: null, mult: 1.9, cd: 3, currentCd: 0, icon: '🧪', desc: 'Ataque brutal que rouba HP e machuca.' }
+                ]
+            },
+            otto: {
+                id: 'otto', name: 'Minion Otto', title: 'O Tagarela da Pedra',
+                eyes: 2, height: 'chubby', hair: 'sprout',
+                stats: { hp: 140, maxHp: 140, attack: 17, defense: 18, initiative: 10, critChance: 12 },
+                skills: [
+                    { name: 'Canhão de Pedra Pet', type: 'rock_cannon', weapon: 'rockCannon', mult: 1.05, cd: 0, currentCd: 0, icon: '🪨', desc: 'Atira a pedra de estimação.' },
+                    { name: 'Arma Magnética', type: 'buff_def', weapon: 'magnetGun', val: 12, cd: 2, currentCd: 0, icon: '🧲', desc: 'Escudo magnético que limpa status e cura.' },
+                    { name: 'Super Propulsor', type: 'rocket', weapon: 'rocketLauncher', mult: 1.95, cd: 3, currentCd: 0, icon: '🔥', desc: 'Explosão propulsora com fuligem.' }
+                ]
+            },
+            dave: {
+                id: 'dave', name: 'Minion Dave', title: 'Especialista em Foguetes',
+                eyes: 2, height: 'medium', hair: 'combed',
+                stats: { hp: 120, maxHp: 120, attack: 22, defense: 13, initiative: 15, critChance: 20 },
+                skills: [
+                    { name: 'Tiro de Lança-Foguete', type: 'rocket', weapon: 'rocketLauncher', mult: 1.1, cd: 0, currentCd: 0, icon: '🚀', desc: 'Disparo direto de minifoguete.' },
+                    { name: 'Granada de Cupcake', type: 'jelly_gun', weapon: 'jellyGun', val: 7, cd: 2, currentCd: 0, icon: '🧁', desc: 'Lança cupcake explosivo viscoso.' },
+                    { name: 'Alerta Bee-Doo Sônico', type: 'fart_gun', weapon: 'fartGun', mult: 2.15, cd: 3, currentCd: 0, icon: '🚨', desc: 'Megafone de alarme destruidor fedido.' }
+                ]
+            }
+        };
+
+        /* ==========================================================================
+           3. DYNAMIC PROCEDURAL PROCEDURAL DAMAGE & SOOT TEXTURE GENERATORS
+           ========================================================================== */
+
+        function createSootTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 256);
+
+            // Add procedural soot patches, scratches & dirt dots
+            ctx.fillStyle = '#1e1b18';
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const r = Math.random() * 25 + 5;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.globalAlpha = Math.random() * 0.45 + 0.1;
+                ctx.fill();
+            }
+
+            // Scratches / Scars
+            ctx.strokeStyle = '#0a0a0a';
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.6;
+            for (let i = 0; i < 12; i++) {
+                ctx.beginPath();
+                const x = Math.random() * 200 + 28;
+                const y = Math.random() * 200 + 28;
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.random() * 40 - 20, y + Math.random() * 40 - 20);
+                ctx.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        const sootTextureInstance = createSootTexture();
+
+        /* ==========================================================================
+           4. THREE.JS PROCEDURAL 3D WEAPON BUILDERS
+           ========================================================================== */
+
+        function build3DWeapon(weaponType) {
+            const group = new THREE.Group();
+
+            if (weaponType === 'fartGun') {
+                const bodyGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.9, 12);
+                bodyGeo.rotateX(Math.PI / 2);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x16a34a, metalness: 0.6, roughness: 0.3 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                group.add(body);
+
+                const tankGeo = new THREE.SphereGeometry(0.22, 12, 12);
+                const tankMat = new THREE.MeshStandardMaterial({ color: 0xeab308, metalness: 0.4 });
+                const tank = new THREE.Mesh(tankGeo, tankMat);
+                tank.position.set(0, -0.15, -0.1);
+                group.add(tank);
+
+                const nozzleGeo = new THREE.ConeGeometry(0.28, 0.4, 12);
+                nozzleGeo.rotateX(-Math.PI / 2);
+                const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8 });
+                const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+                nozzle.position.set(0, 0, 0.55);
+                group.add(nozzle);
+            }
+            else if (weaponType === 'freezeRay') {
+                const barrelGeo = new THREE.CylinderGeometry(0.14, 0.16, 1.1, 12);
+                barrelGeo.rotateX(Math.PI / 2);
+                const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.1 });
+                const barrel = new THREE.Mesh(barrelGeo, barrelMat);
+                group.add(barrel);
+
+                const coreGeo = new THREE.OctahedronGeometry(0.22);
+                const coreMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, roughness: 0.1 });
+                const core = new THREE.Mesh(coreGeo, coreMat);
+                core.position.set(0, 0.1, 0.1);
+                group.add(core);
+            }
+            else if (weaponType === 'rocketLauncher') {
+                const tubeGeo = new THREE.CylinderGeometry(0.22, 0.22, 1.3, 12);
+                tubeGeo.rotateX(Math.PI / 2);
+                const tubeMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.2 });
+                const tube = new THREE.Mesh(tubeGeo, tubeMat);
+                group.add(tube);
+
+                const rocketGeo = new THREE.ConeGeometry(0.18, 0.4, 12);
+                rocketGeo.rotateX(Math.PI / 2);
+                const rocketMat = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+                const rocket = new THREE.Mesh(rocketGeo, rocketMat);
+                rocket.position.set(0, 0, 0.6);
+                group.add(rocket);
+            }
+            else if (weaponType === 'ukulele') {
+                const bodyGeo = new THREE.BoxGeometry(0.5, 0.7, 0.15);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.6 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                group.add(body);
+
+                const neckGeo = new THREE.BoxGeometry(0.12, 0.8, 0.08);
+                const neck = new THREE.Mesh(neckGeo, bodyMat);
+                neck.position.set(0, 0.6, 0);
+                group.add(neck);
+            }
+            else if (weaponType === 'laserGun') {
+                const pGeo = new THREE.BoxGeometry(0.14, 0.25, 0.7);
+                const pMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+                const pistol = new THREE.Mesh(pGeo, pMat);
+                group.add(pistol);
+
+                const tipGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.3, 8);
+                tipGeo.rotateX(Math.PI / 2);
+                const tipMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+                const tip = new THREE.Mesh(tipGeo, tipMat);
+                tip.position.set(0, 0.05, 0.45);
+                group.add(tip);
+            }
+            else if (weaponType === 'teddyBear') {
+                const tGeo = new THREE.SphereGeometry(0.28, 12, 12);
+                const tMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+                const teddy = new THREE.Mesh(tGeo, tMat);
+                group.add(teddy);
+            }
+            else if (weaponType === 'jellyGun' || weaponType === 'purpleCannon' || weaponType === 'toxicGun' || weaponType === 'rockCannon' || weaponType === 'magnetGun') {
+                const gGeo = new THREE.CylinderGeometry(0.18, 0.24, 0.9, 12);
+                gGeo.rotateX(Math.PI / 2);
+                const gColor = weaponType === 'jellyGun' ? 0xec4899 : (weaponType === 'purpleCannon' || weaponType === 'toxicGun' ? 0x9333ea : 0x0284c7);
+                const gMat = new THREE.MeshStandardMaterial({ color: gColor, metalness: 0.7 });
+                const gun = new THREE.Mesh(gGeo, gMat);
+                group.add(gun);
+            }
+
+            return group;
+        }
+
+        /* ==========================================================================
+           5. THREE.JS 3D SCENE & ENVIRONMENT
+           ========================================================================== */
+
+        let scene, camera, renderer;
+        let p1MeshGroup, p2MeshGroup;
+        let previewMeshGroup;
+        let particlesSystem = [];
+        let p1Weapons = {}, p2Weapons = {};
+
+        const defaultCamPos = new THREE.Vector3(0, 5, 12);
+        const defaultCamLook = new THREE.Vector3(0, 2.2, 0);
+        let targetCamPos = defaultCamPos.clone();
+        let targetCamLook = defaultCamLook.clone();
+        let currentCamLook = defaultCamLook.clone();
+
+        function init3D() {
+            const canvas = document.getElementById('webgl-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x17324a);
+            scene.fog = new THREE.FogExp2(0x17324a, 0.018);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.copy(defaultCamPos);
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+            setupEnvironment();
+
+            window.addEventListener('resize', onWindowResize);
+            animate3D();
+        }
+
+        function setupEnvironment() {
+            const ambient = new THREE.AmbientLight(0x38bdf8, 0.6);
+            scene.add(ambient);
+
+            const spot1 = new THREE.SpotLight(0xfacc15, 2.5);
+            spot1.position.set(-6, 12, 6);
+            spot1.castShadow = true;
+            spot1.shadow.mapSize.width = 1024;
+            spot1.shadow.mapSize.height = 1024;
+            scene.add(spot1);
+
+            const spot2 = new THREE.SpotLight(0xc084fc, 2.5);
+            spot2.position.set(6, 12, 6);
+            spot2.castShadow = true;
+            scene.add(spot2);
+
+            // Fundo da arena: parede de laboratório colorida, com painéis e luzes neon.
+            createLabBackdrop();
+
+            const floorGeo = new THREE.PlaneGeometry(36, 36);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x29445a, roughness: 0.48, metalness: 0.42
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            const grid = new THREE.GridHelper(36, 36, 0xfacc15, 0x3c7188);
+            grid.position.y = 0.01;
+            scene.add(grid);
+
+            createChemicalTube(-10, 0, -8);
+            createChemicalTube(10, 0, -8);
+        }
+
+        function createLabBackdrop() {
+            // Textura procedural: não depende de imagens externas e mantém o visual mesmo offline.
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 1024, 512);
+            grad.addColorStop(0, '#173b58');
+            grad.addColorStop(0.48, '#286078');
+            grad.addColorStop(1, '#34275c');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const glowA = ctx.createRadialGradient(220, 130, 10, 220, 130, 300);
+            glowA.addColorStop(0, 'rgba(34,211,238,0.42)');
+            glowA.addColorStop(1, 'rgba(34,211,238,0)');
+            ctx.fillStyle = glowA; ctx.fillRect(0, 0, 1024, 512);
+            const glowB = ctx.createRadialGradient(820, 210, 5, 820, 210, 330);
+            glowB.addColorStop(0, 'rgba(168,85,247,0.38)');
+            glowB.addColorStop(1, 'rgba(168,85,247,0)');
+            ctx.fillStyle = glowB; ctx.fillRect(0, 0, 1024, 512);
+
+            // Painéis técnicos e faixas de segurança desenhados na própria textura.
+            ctx.strokeStyle = 'rgba(148,220,239,0.20)'; ctx.lineWidth = 2;
+            for (let x = 24; x < 1024; x += 64) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+            }
+            for (let y = 24; y < 512; y += 64) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+            }
+            for (let x = 40; x < 1024; x += 190) {
+                ctx.fillStyle = 'rgba(8,20,38,0.46)';
+                ctx.fillRect(x, 70, 125, 170);
+                ctx.strokeStyle = 'rgba(250,204,21,0.48)'; ctx.lineWidth = 4;
+                ctx.strokeRect(x, 70, 125, 170);
+                ctx.fillStyle = 'rgba(34,211,238,0.24)';
+                ctx.fillRect(x + 12, 84, 101, 92);
+                ctx.fillStyle = 'rgba(250,204,21,0.75)';
+                for (let k = 0; k < 5; k++) ctx.fillRect(x + 12 + k * 20, 198, 12, 5);
+            }
+            ctx.save(); ctx.translate(0, 450); ctx.fillStyle = 'rgba(250,204,21,0.75)';
+            for (let x = -20; x < 1060; x += 70) {
+                ctx.beginPath(); ctx.moveTo(x, 62); ctx.lineTo(x + 30, 62); ctx.lineTo(x + 70, 0); ctx.lineTo(x + 40, 0); ctx.closePath(); ctx.fill();
+            }
+            ctx.restore();
+            ctx.fillStyle = 'rgba(255,255,255,0.88)';
+            ctx.font = 'bold 25px Arial';
+            ctx.fillText('GRU LAB  //  COMBAT ARENA', 30, 42);
+            ctx.fillStyle = 'rgba(250,204,21,0.92)'; ctx.font = 'bold 14px Arial';
+            ctx.fillText('MINION TRAINING FACILITY • SECTOR 03', 32, 62);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.colorSpace = THREE.SRGBColorSpace || texture.colorSpace;
+            const wall = new THREE.Mesh(
+                new THREE.PlaneGeometry(36, 16),
+                new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide })
+            );
+            wall.position.set(0, 6.2, -10);
+            scene.add(wall);
+
+            // Estruturas metálicas laterais para dar profundidade à arena.
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x40566a, metalness: 0.82, roughness: 0.28 });
+            const cyanMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x0891b2, emissiveIntensity: 1.8, metalness: 0.25 });
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0x854d0e, emissiveIntensity: 0.65, metalness: 0.45 });
+            for (const x of [-13, -8.5, 8.5, 13]) {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.34, 10, 0.5), frameMat);
+                pillar.position.set(x, 4.2, -8.9); scene.add(pillar);
+                const strip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 7.8, 0.54), Math.abs(x) > 12 ? yellowMat : cyanMat);
+                strip.position.set(x, 4.5, -8.58); scene.add(strip);
+            }
+            for (const y of [1.1, 8.7]) {
+                const beam = new THREE.Mesh(new THREE.BoxGeometry(30, 0.22, 0.6), frameMat);
+                beam.position.set(0, y, -8.8); scene.add(beam);
+            }
+
+            // Luminárias suspensas e luzes de ambiente.
+            for (const x of [-6, 0, 6]) {
+                const lamp = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 0.5), cyanMat);
+                lamp.position.set(x, 9.6, -5.5); scene.add(lamp);
+                const glow = new THREE.PointLight(0x38bdf8, 1.25, 12);
+                glow.position.set(x, 8.7, -3.8); scene.add(glow);
+            }
+            const warmFill = new THREE.PointLight(0xfacc15, 0.8, 22);
+            warmFill.position.set(0, 5, 5); scene.add(warmFill);
+        }
+
+        function createChemicalTube(x, y, z) {
+            const group = new THREE.Group();
+            group.position.set(x, y, z);
+
+            const glassGeo = new THREE.CylinderGeometry(1.2, 1.2, 6, 16);
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0xa855f7, transparent: true, opacity: 0.4,
+                roughness: 0.1, transmission: 0.8, thickness: 0.5
+            });
+            const glass = new THREE.Mesh(glassGeo, glassMat);
+            glass.position.y = 3;
+            group.add(glass);
+
+            const liquidGeo = new THREE.CylinderGeometry(1.0, 1.0, 5, 16);
+            const liquidMat = new THREE.MeshStandardMaterial({
+                color: 0x9333ea, emissive: 0x6b21a8, roughness: 0.2
+            });
+            const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+            liquid.position.y = 2.6;
+            group.add(liquid);
+
+            const capGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.4, 16);
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
+            const capBottom = new THREE.Mesh(capGeo, capMat);
+            const capTop = new THREE.Mesh(capGeo, capMat);
+            capTop.position.y = 6;
+            group.add(capBottom); group.add(capTop);
+
+            scene.add(group);
+        }
+
+        /* ==========================================================================
+           6. PROCEDURAL 3D MINION MESH & DAMAGE OVERLAY SYSTEM
+           ========================================================================== */
+
+        function build3DMinionMesh(minionData) {
+            const group = new THREE.Group();
+            const isEvil = minionData.isEvil;
+
+            let bodyRadius = 0.8;
+            let bodyHeight = 1.8;
+            if (minionData.height === 'tall') bodyHeight = 2.4;
+            if (minionData.height === 'short') { bodyHeight = 1.4; bodyRadius = 0.85; }
+            if (minionData.height === 'chubby') { bodyHeight = 1.6; bodyRadius = 1.0; }
+
+            const baseColorHex = isEvil ? 0x9333ea : 0xfacc15;
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: baseColorHex, roughness: 0.4, metalness: 0.1,
+                map: sootTextureInstance
+            });
+            const denimMat = new THREE.MeshStandardMaterial({
+                color: isEvil ? 0x1e1b4b : 0x1d4ed8, roughness: 0.7,
+                map: sootTextureInstance
+            });
+            const goggleMat = new THREE.MeshStandardMaterial({
+                color: 0xcbd5e1, metalness: 0.95, roughness: 0.15
+            });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const gloveMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+
+            // Body Capsule
+            const capsuleGeo = new THREE.CylinderGeometry(bodyRadius, bodyRadius, bodyHeight, 24);
+            const capGeoTop = new THREE.SphereGeometry(bodyRadius, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            
+            const bodyMesh = new THREE.Mesh(capsuleGeo, bodyMat);
+            bodyMesh.position.y = bodyHeight / 2 + 0.3;
+            bodyMesh.castShadow = true;
+            group.add(bodyMesh);
+
+            const topHead = new THREE.Mesh(capGeoTop, bodyMat);
+            topHead.position.y = bodyHeight + 0.3;
+            topHead.castShadow = true;
+            group.add(topHead);
+
+            // Overalls
+            const overallsGeo = new THREE.CylinderGeometry(bodyRadius + 0.03, bodyRadius + 0.03, bodyHeight * 0.45, 24);
+            const overallsMesh = new THREE.Mesh(overallsGeo, denimMat);
+            overallsMesh.position.y = bodyHeight * 0.3 + 0.2;
+            overallsMesh.castShadow = true;
+            group.add(overallsMesh);
+
+            // Eyes & Goggles
+            const eyeCount = minionData.eyes || 2;
+            const eyeSpacing = eyeCount === 2 ? 0.38 : 0;
+            const eyeY = bodyHeight * 0.75 + 0.2;
+
+            const strapGeo = new THREE.CylinderGeometry(bodyRadius + 0.04, bodyRadius + 0.04, 0.2, 24);
+            const strapMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+            const strap = new THREE.Mesh(strapGeo, strapMat);
+            strap.position.y = eyeY;
+            group.add(strap);
+
+            const pupils = [];
+            for (let i = 0; i < eyeCount; i++) {
+                const offsetX = eyeCount === 2 ? (i === 0 ? -eyeSpacing : eyeSpacing) : 0;
+
+                const frameGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 16);
+                frameGeo.rotateX(Math.PI / 2);
+                const frame = new THREE.Mesh(frameGeo, goggleMat);
+                frame.position.set(offsetX, eyeY, bodyRadius + 0.08);
+                group.add(frame);
+
+                const scleraGeo = new THREE.SphereGeometry(0.22, 16, 16);
+                const sclera = new THREE.Mesh(scleraGeo, eyeMat);
+                sclera.position.set(offsetX, eyeY, bodyRadius + 0.12);
+                group.add(sclera);
+
+                let pupilColor = isEvil ? 0xdc2626 : (minionData.heterochromia && i === 1 ? 0x16a34a : 0x854d0e);
+                const pupilGeo = new THREE.SphereGeometry(0.09, 12, 12);
+                const pupilMat = new THREE.MeshBasicMaterial({ color: pupilColor });
+                const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+                pupil.position.set(offsetX, eyeY, bodyRadius + 0.3);
+                group.add(pupil);
+                pupils.push(pupil);
+            }
+
+            // Rosto procedural: boca e sobrancelhas que mudam quando o Minion leva dano.
+            const mouthMat = new THREE.MeshStandardMaterial({ color: 0x24120f, roughness: 0.85 });
+            const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), mouthMat);
+            mouth.position.set(0, bodyHeight * 0.57, bodyRadius + 0.16);
+            mouth.scale.set(1.15, 0.42, 0.22);
+            group.add(mouth);
+
+            const browMat = new THREE.MeshStandardMaterial({ color: isEvil ? 0x3b0764 : 0x49321b, roughness: 0.8 });
+            const brows = [];
+            const browCount = eyeCount === 2 ? 2 : 1;
+            for (let i = 0; i < browCount; i++) {
+                const x = browCount === 2 ? (i === 0 ? -eyeSpacing : eyeSpacing) : 0;
+                const brow = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.075, 0.07), browMat);
+                brow.position.set(x, eyeY + 0.31, bodyRadius + 0.19);
+                brow.rotation.z = i === 0 ? -0.08 : 0.08;
+                group.add(brow);
+                brows.push(brow);
+            }
+
+            // Right Arm Rigging
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(bodyRadius + 0.1, bodyHeight * 0.5, 0);
+
+            const armGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 12);
+            const arm = new THREE.Mesh(armGeo, bodyMat);
+            arm.position.y = -0.3;
+            rightArmGroup.add(arm);
+
+            const gloveGeo = new THREE.SphereGeometry(0.18, 12, 12);
+            const glove = new THREE.Mesh(gloveGeo, gloveMat);
+            glove.position.y = -0.65;
+            rightArmGroup.add(glove);
+
+            const weaponSocket = new THREE.Group();
+            weaponSocket.position.set(0, -0.65, 0.2);
+            rightArmGroup.add(weaponSocket);
+
+            group.add(rightArmGroup);
+
+            // Left Arm
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-bodyRadius - 0.1, bodyHeight * 0.5, 0);
+            const armL = new THREE.Mesh(armGeo, bodyMat);
+            armL.position.y = -0.3;
+            leftArmGroup.add(armL);
+            const gloveL = new THREE.Mesh(gloveGeo, gloveMat);
+            gloveL.position.y = -0.65;
+            leftArmGroup.add(gloveL);
+            group.add(leftArmGroup);
+
+            // Boots
+            [-0.35, 0.35].forEach((footX) => {
+                const bootGeo = new THREE.BoxGeometry(0.32, 0.3, 0.5);
+                const boot = new THREE.Mesh(bootGeo, gloveMat);
+                boot.position.set(footX, 0.15, 0.1);
+                boot.castShadow = true;
+                group.add(boot);
+            });
+
+            // --- STATUS VISUAL OVERLAYS ---
+
+            // 1. ICE BLOCK OVERLAY (Freeze effect)
+            const iceGeo = new THREE.BoxGeometry(bodyRadius * 2.5, bodyHeight + 1.2, bodyRadius * 2.5);
+            const iceMat = new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8, transparent: true, opacity: 0,
+                roughness: 0.1, transmission: 0.9, thickness: 1.2,
+                emissive: 0x0284c7, emissiveIntensity: 0
+            });
+            const iceMesh = new THREE.Mesh(iceGeo, iceMat);
+            iceMesh.position.y = bodyHeight / 2 + 0.3;
+            iceMesh.visible = false;
+            group.add(iceMesh);
+
+            // 2. BANDAGE / SCRATCH DECALS
+            const bandageGeo = new THREE.BoxGeometry(0.6, 0.1, 0.02);
+            const bandageMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.9 });
+            const bandage = new THREE.Mesh(bandageGeo, bandageMat);
+            bandage.position.set(0.1, bodyHeight * 0.6, bodyRadius + 0.05);
+            bandage.rotation.z = 0.2;
+            bandage.visible = false;
+            group.add(bandage);
+
+            group.userData = {
+                rightArm: rightArmGroup,
+                leftArm: leftArmGroup,
+                weaponSocket: weaponSocket,
+                bodyHeight, bodyRadius,
+                bodyMat, denimMat, baseColorHex,
+                iceMesh, iceMat, bandage,
+                mouth, brows, pupils, baseMouthY: mouth.position.y,
+                baseMouthScale: mouth.scale.clone(),
+                baseBrowRotations: brows.map(b => b.rotation.z),
+                expressionTimer: null, expression: 'normal',
+                isFarted: false, isFrozen: false, isShocked: false
+            };
+
+            return group;
+        }
+
+        function setMinionExpression(meshGroup, expression = 'pain', duration = 950) {
+            if (!meshGroup?.userData) return;
+            const u = meshGroup.userData;
+            if (!u.mouth || !u.brows) return;
+            if (u.expressionTimer) clearTimeout(u.expressionTimer);
+            u.expression = expression;
+
+            // Volta ao rosto neutro antes de aplicar uma nova expressão.
+            u.mouth.position.y = u.baseMouthY;
+            u.mouth.scale.copy(u.baseMouthScale);
+            u.brows.forEach((b, i) => { b.rotation.z = u.baseBrowRotations[i] || 0; });
+            if (expression === 'pain') {
+                u.mouth.position.y = u.baseMouthY - 0.035;
+                u.mouth.scale.set(0.72, 1.15, 0.3); // boca aberta de susto/dor
+                u.brows.forEach((b, i) => { b.rotation.z = i === 0 ? 0.42 : -0.42; });
+            } else if (expression === 'angry') {
+                u.mouth.scale.set(1.15, 0.24, 0.22);
+                u.brows.forEach((b, i) => { b.rotation.z = i === 0 ? 0.48 : -0.48; });
+            }
+
+            u.expressionTimer = setTimeout(() => {
+                if (!meshGroup.userData) return;
+                const data = meshGroup.userData;
+                data.mouth.position.y = data.baseMouthY;
+                data.mouth.scale.copy(data.baseMouthScale);
+                data.brows.forEach((b, i) => { b.rotation.z = data.baseBrowRotations[i] || 0; });
+                data.expression = 'normal';
+                data.expressionTimer = null;
+            }, duration);
+        }
+
+        function updateMinionDamageState(meshGroup, currentHp, maxHp) {
+            if (!meshGroup || !meshGroup.userData) return;
+            const u = meshGroup.userData;
+            const hpPct = Math.max(0, currentHp / maxHp);
+
+            // Bandage appears under 60% HP
+            u.bandage.visible = hpPct < 0.6;
+
+            // Fart Green Color Blend Override
+            if (u.isFarted) {
+                u.bodyMat.color.setHex(0x4ade80); // Sick Green tint
+            } else if (u.isFrozen) {
+                u.bodyMat.color.setHex(0x7dd3fc); // Pale Ice Blue tint
+            } else {
+                // Restore base color or turn darker/dirty
+                const dirtyFactor = 1.0 - (1.0 - hpPct) * 0.5;
+                const baseColor = new THREE.Color(u.baseColorHex);
+                baseColor.multiplyScalar(dirtyFactor);
+                u.bodyMat.color.copy(baseColor);
+            }
+
+            // Ice Encapsulation
+            if (u.isFrozen) {
+                u.iceMesh.visible = true;
+                u.iceMat.opacity = 0.65;
+                u.iceMat.emissiveIntensity = 0.4;
+            } else {
+                u.iceMesh.visible = false;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* ==========================================================================
+           7. GAME CONTROLLER ENGINE & PVE/PVP LOGIC
+           ========================================================================== */
+
+        let gameState = {
+            mode: 'pve', selectingPlayer: 1, p1: null, p2: null,
+            activeTurn: 1, round: 1, isAnimating: false
+        };
+
+        const STORY_CHAPTERS = [
+            { title: 'Sinal no Laboratório', place: 'Laboratório do Gru', bossId: 'evil', bossName: 'Sentinela PX-41', intro: ['ALERTA DO GRU: Um sinal roxo desconhecido acabou de invadir o laboratório. Minions, preciso de vocês!', 'KEVIN: “Bello! Banana… perigo?”', 'GRU: Encontre a origem do sinal. E, por favor, não apertem o botão vermelho.'], reward: 'dave', rewardName: 'Minion Dave' },
+            { title: 'A Fuga do Porto', place: 'Porto clandestino', bossId: 'dave', bossName: 'Mercenário do Porto', intro: ['O sinal leva a um porto cheio de caixas roubadas e tecnologia experimental.', 'STUART: “Isso parece suspeito… e tem cheiro de banana velha.”', 'Uma figura armada bloqueia o caminho. A passagem só será liberada vencendo o duelo!'], reward: 'otto', rewardName: 'Minion Otto' },
+            { title: 'A Mina Magnética', place: 'Mina subterrânea', bossId: 'otto', bossName: 'Guardião Magnético', intro: ['Sob a mina, um enorme núcleo magnético alimenta a máquina que espalha o sinal roxo.', 'OTTO (no comunicador): “Eu não fiz isso! Acho… que não fiz.”', 'O guardião protege o núcleo. Desative-o antes que o laboratório inteiro seja afetado.'], reward: 'evil', rewardName: 'Evil Minion PX-41' },
+            { title: 'O Protótipo Perdido', place: 'Instalação secreta', bossId: 'evil', bossName: 'PX-41 Descontrolado', intro: ['O núcleo revela gravações de um experimento que saiu terrivelmente errado.', 'GRU: O PX-41 foi apenas o começo. Alguém está controlando esses protótipos.', 'O mutante ficou mais forte. Use suas melhorias e ataque com estratégia!'], reward: null, rewardName: null },
+            { title: 'O Confronto Final', place: 'Câmara do Núcleo', bossId: 'evil', bossName: 'PX-41 Supremo', intro: ['Você chegou à câmara central. O sinal vem de uma máquina alimentada por energia instável.', 'GRU: Desligue o núcleo e traga meus Minions de volta em segurança!', 'PX-41: “GRRR… BANANA NENHUMA!” A batalha final começa agora.'], reward: null, rewardName: null }
+        ];
+
+        function loadStoryProgress() {
+            const defaults = { chapter: 1, heroId: null, unlocked: ['kevin', 'stuart', 'bob'], upgrades: {}, points: 0, xp: 0, completed: false, rewardedChapters: [] };
+            try {
+                const saved = JSON.parse(localStorage.getItem('minionsRpgStorySave') || 'null');
+                if (!saved || typeof saved !== 'object') return defaults;
+                return { ...defaults, ...saved, unlocked: Array.isArray(saved.unlocked) ? saved.unlocked : defaults.unlocked, upgrades: saved.upgrades || {}, rewardedChapters: Array.isArray(saved.rewardedChapters) ? saved.rewardedChapters : [] };
+            } catch (e) { return defaults; }
+        }
+        let storyProgress = loadStoryProgress();
+        let storySceneLines = [];
+        let storySceneIndex = 0;
+
+        function saveStoryProgress() {
+            try { localStorage.setItem('minionsRpgStorySave', JSON.stringify(storyProgress)); } catch (e) { /* Save is optional when browser storage is disabled. */ }
+        }
+
+        function applyStoryUpgrades(character) {
+            const u = storyProgress.upgrades[character.id] || { hp: 0, attack: 0, defense: 0, skills: 0 };
+            character.stats.maxHp += (u.hp || 0) * 12;
+            character.stats.hp = character.stats.maxHp;
+            character.stats.attack += (u.attack || 0) * 3;
+            character.stats.defense += (u.defense || 0) * 2;
+            character.storySkillBonus = (u.skills || 0) * 2;
+            return character;
+        }
+
+        function openStoryCampaign() {
+            gameState.mode = 'story';
+            showScreen('screen-story');
+            renderStoryCampaign();
+        }
+
+        function renderStoryCampaign() {
+            const list = document.getElementById('story-chapter-list');
+            const summary = document.getElementById('story-progress-summary');
+            const start = document.getElementById('story-start-btn');
+            if (!list || !summary || !start) return;
+            list.innerHTML = '';
+            STORY_CHAPTERS.forEach((chapter, i) => {
+                const number = i + 1;
+                const done = storyProgress.completed || number < storyProgress.chapter;
+                const current = !storyProgress.completed && number === storyProgress.chapter;
+                const locked = number > storyProgress.chapter && !storyProgress.completed;
+                const card = document.createElement('div');
+                card.className = `rounded-2xl border p-4 ${done ? 'border-emerald-400/50 bg-emerald-950/30' : current ? 'border-yellow-300/70 bg-yellow-400/10 shadow-[0_0_18px_rgba(250,204,21,0.10)]' : 'border-slate-700 bg-slate-950/50 opacity-70'}`;
+                card.innerHTML = `<div class="flex items-start gap-3"><div class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center font-tech font-bold ${done ? 'bg-emerald-400/20 text-emerald-300' : current ? 'bg-yellow-300/20 text-yellow-200' : 'bg-slate-800 text-slate-400'}">${done ? '✓' : locked ? '🔒' : String(number).padStart(2,'0')}</div><div class="min-w-0"><h3 class="font-heading text-lg ${current ? 'text-yellow-200' : done ? 'text-emerald-200' : 'text-slate-300'}">${chapter.title}</h3><p class="text-xs text-cyan-300 mt-0.5">${chapter.place}</p><p class="text-xs text-slate-400 mt-2">${done ? 'Missão concluída' : current ? 'Missão atual' : 'Conclua o capítulo anterior'}</p></div></div>`;
+                list.appendChild(card);
+            });
+            const heroName = storyProgress.heroId && MINIONS[storyProgress.heroId] ? MINIONS[storyProgress.heroId].name : 'Ainda não escolhido';
+            summary.innerHTML = `<div class="flex flex-wrap gap-x-5 gap-y-2"><span>🧑‍🚀 <b>Minion:</b> ${heroName}</span><span>⭐ <b>XP:</b> ${storyProgress.xp}</span><span>🧰 <b>Pontos de melhoria:</b> ${storyProgress.points}</span><span>🔓 <b>Desbloqueados:</b> ${storyProgress.unlocked.length}/${Object.keys(MINIONS).length}</span></div>${storyProgress.completed ? '<p class="text-emerald-300 font-bold mt-3">🏆 Campanha concluída! Você salvou o laboratório.</p>' : ''}`;
+            start.textContent = storyProgress.completed ? '↻ Jogar campanha novamente' : (storyProgress.heroId ? `▶ Continuar — Capítulo ${storyProgress.chapter}` : '▶ Iniciar campanha');
+        }
+
+        function startStoryCampaign() {
+            gameState.mode = 'story';
+            if (storyProgress.completed) {
+                storyProgress.chapter = 1; storyProgress.heroId = null; storyProgress.completed = false;
+                storyProgress.rewardedChapters = []; storyProgress.points = 0; storyProgress.xp = 0;
+                saveStoryProgress(); renderStoryCampaign();
+            }
+            if (!storyProgress.heroId || !storyProgress.unlocked.includes(storyProgress.heroId)) {
+                showScreen('screen-char-select');
+                return;
+            }
+            startStoryScene();
+        }
+
+        function changeStoryHero() {
+            gameState.mode = 'story';
+            if (p1MeshGroup) scene.remove(p1MeshGroup);
+            if (p2MeshGroup) scene.remove(p2MeshGroup);
+            if (previewMeshGroup) scene.remove(previewMeshGroup);
+            p1MeshGroup = null; p2MeshGroup = null; previewMeshGroup = null;
+            storyProgress.heroId = null;
+            saveStoryProgress();
+            showScreen('screen-char-select');
+        }
+
+        function startStoryScene() {
+            const chapter = STORY_CHAPTERS[storyProgress.chapter - 1];
+            storySceneLines = chapter.intro;
+            storySceneIndex = 0;
+            document.getElementById('story-scene-title').textContent = `Capítulo ${storyProgress.chapter}: ${chapter.title}`;
+            document.getElementById('story-scene-modal').classList.remove('hidden');
+            document.getElementById('story-scene-modal').classList.add('flex');
+            renderStorySceneLine();
+        }
+
+        function renderStorySceneLine() {
+            document.getElementById('story-scene-text').textContent = storySceneLines[storySceneIndex];
+            document.getElementById('story-scene-counter').textContent = `CENA ${storySceneIndex + 1} / ${storySceneLines.length}`;
+            document.getElementById('story-scene-next').textContent = storySceneIndex === storySceneLines.length - 1 ? '⚔️ Iniciar batalha' : 'Próximo diálogo →';
+        }
+
+        function advanceStoryScene() {
+            if (storySceneIndex < storySceneLines.length - 1) {
+                storySceneIndex++;
+                renderStorySceneLine();
+                return;
+            }
+            document.getElementById('story-scene-modal').classList.add('hidden');
+            document.getElementById('story-scene-modal').classList.remove('flex');
+            startStoryBattle();
+        }
+
+        function startStoryBattle() {
+            const chapter = STORY_CHAPTERS[storyProgress.chapter - 1];
+            const hero = applyStoryUpgrades(deepCopy(MINIONS[storyProgress.heroId]));
+            const boss = deepCopy(MINIONS[chapter.bossId]);
+            boss.name = chapter.bossName;
+            boss.title = chapter.place;
+            boss.isAi = true;
+            const scale = [0.82, 0.94, 1.03, 1.18, 1.34][storyProgress.chapter - 1];
+            boss.stats.maxHp = Math.round(boss.stats.maxHp * scale + (storyProgress.chapter - 1) * 8);
+            boss.stats.hp = boss.stats.maxHp;
+            boss.stats.attack = Math.round(boss.stats.attack * (0.88 + (storyProgress.chapter - 1) * 0.09));
+            boss.stats.defense = Math.round(boss.stats.defense * (0.9 + (storyProgress.chapter - 1) * 0.07));
+            gameState.p1 = hero;
+            gameState.p2 = boss;
+            startBattle();
+            addLog(`🎬 <b>CAPÍTULO ${storyProgress.chapter}: ${chapter.title}</b> — ${chapter.place}`);
+        }
+
+        function upgradeStoryStat(stat) {
+            if (storyProgress.points <= 0 || !storyProgress.heroId) return;
+            const u = storyProgress.upgrades[storyProgress.heroId] || { hp: 0, attack: 0, defense: 0, skills: 0 };
+            if (!Object.prototype.hasOwnProperty.call(u, stat)) return;
+            u[stat]++;
+            storyProgress.upgrades[storyProgress.heroId] = u;
+            storyProgress.points--;
+            saveStoryProgress();
+            renderStoryRewardPanel();
+        }
+
+        function renderStoryRewardPanel() {
+            const panel = document.getElementById('story-reward-panel');
+            if (gameState.mode !== 'story' || !panel) return;
+            const chapter = STORY_CHAPTERS[storyProgress.chapter - 1];
+            const u = storyProgress.upgrades[storyProgress.heroId] || { hp: 0, attack: 0, defense: 0, skills: 0 };
+            const rewards = storyProgress.rewardedChapters.includes(storyProgress.chapter);
+            panel.classList.remove('hidden');
+            panel.innerHTML = `<p class="font-heading text-yellow-200 mb-1">🎁 Recompensas da missão</p><p class="text-xs text-slate-300 mb-3">${rewards ? 'Recompensas adicionadas ao progresso.' : '+100 XP • +1 ponto de melhoria'}${chapter.reward && storyProgress.unlocked.includes(chapter.reward) ? ` • ${chapter.rewardName} já desbloqueado` : ''}</p><div class="text-xs text-cyan-200 mb-2">Pontos disponíveis: <b>${storyProgress.points}</b></div><div class="grid grid-cols-2 gap-2"><button onclick="upgradeStoryStat('hp')" ${storyProgress.points <= 0 ? 'disabled' : ''} class="glass-btn rounded-lg p-2 text-xs font-bold disabled:opacity-40">❤️ Vida +12 <span class="block text-[10px] text-slate-400">Nível ${u.hp}</span></button><button onclick="upgradeStoryStat('attack')" ${storyProgress.points <= 0 ? 'disabled' : ''} class="glass-btn rounded-lg p-2 text-xs font-bold disabled:opacity-40">⚔️ Ataque +3 <span class="block text-[10px] text-slate-400">Nível ${u.attack}</span></button><button onclick="upgradeStoryStat('defense')" ${storyProgress.points <= 0 ? 'disabled' : ''} class="glass-btn rounded-lg p-2 text-xs font-bold disabled:opacity-40">🛡 Defesa +2 <span class="block text-[10px] text-slate-400">Nível ${u.defense}</span></button><button onclick="upgradeStoryStat('skills')" ${storyProgress.points <= 0 ? 'disabled' : ''} class="glass-btn rounded-lg p-2 text-xs font-bold disabled:opacity-40">✨ Habilidades +2 <span class="block text-[10px] text-slate-400">Nível ${u.skills}</span></button></div>`;
+        }
+
+        function showScreen(screenId) {
+            document.getElementById('screen-mode').classList.add('hidden');
+            document.getElementById('screen-story').classList.add('hidden');
+            document.getElementById('screen-char-select').classList.add('hidden');
+            document.getElementById('screen-combat').classList.add('hidden');
+            document.getElementById('timeline-hud').classList.add('hidden');
+            document.getElementById('restart-midgame-btn').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+
+            if (screenId === 'screen-mode') {
+                targetCamPos.set(0, 5, 12);
+                targetCamLook.set(0, 2.2, 0);
+                if (p1MeshGroup) scene.remove(p1MeshGroup);
+                if (p2MeshGroup) scene.remove(p2MeshGroup);
+                if (previewMeshGroup) scene.remove(previewMeshGroup);
+            }
+
+            if (screenId === 'screen-char-select') {
+                gameState.selectingPlayer = 1;
+                renderCharSelectGrid();
+            }
+            if (screenId === 'screen-story') renderStoryCampaign();
+        }
+
+        function selectGameMode(mode) {
+            gameState.mode = mode;
+            showScreen(mode === 'story' ? 'screen-story' : 'screen-char-select');
+        }
+
+        function renderCharSelectGrid() {
+            const grid = document.getElementById('minions-grid');
+            grid.innerHTML = '';
+
+            const title = document.getElementById('select-title-indicator');
+            if (gameState.mode === 'pvp') {
+                title.innerText = gameState.selectingPlayer === 1 ? '🎮 JOGADOR 1: Escolha seu Minion' : '🎮 JOGADOR 2: Escolha seu Minion';
+            } else if (gameState.mode === 'story') {
+                title.innerText = '🎬 História: escolha um Minion desbloqueado';
+            } else {
+                title.innerText = '🎮 Escolha seu Minion de Treino';
+            }
+
+            Object.values(MINIONS).forEach(m => {
+                const isLocked = gameState.mode === 'story' && !storyProgress.unlocked.includes(m.id);
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-2xl p-4 flex flex-col justify-between ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`;
+                card.onmouseenter = () => previewMinionIn3D(m);
+                card.onclick = () => { if (isLocked) return; selectChar(m.id); };
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xl font-heading text-yellow-300">${m.name}</h3>
+                            <span class="text-2xl">${m.skills[0].icon}</span>
+                        </div>
+                        <p class="text-xs text-cyan-300 font-bold mb-3">${m.title}</p>
+                        
+                        <div class="space-y-1 text-xs bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 font-tech mb-3">
+                            <div class="flex justify-between"><span>❤️ HP:</span> <b class="text-emerald-400">${m.stats.hp}</b></div>
+                            <div class="flex justify-between"><span>⚔️ ATK:</span> <b class="text-red-400">${m.stats.attack}</b></div>
+                            <div class="flex justify-between"><span>🛡 DEF:</span> <b class="text-cyan-400">${m.stats.defense}</b></div>
+                            <div class="flex justify-between"><span>⚡ SPD:</span> <b class="text-yellow-400">${m.stats.initiative}</b></div>
+                            <div class="flex justify-between"><span>🎯 CRIT:</span> <b class="text-purple-400">${m.stats.critChance}%</b></div>
+                        </div>
+                    </div>
+                    <button ${isLocked ? 'disabled' : ''} class="w-full mt-2 py-2 rounded-xl ${isLocked ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-yellow-400 hover:bg-yellow-300 text-slate-950'} font-heading font-bold text-xs transition">
+                        ${isLocked ? '🔒 Bloqueado na história' : 'Selecionar'}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+
+            previewMinionIn3D(Object.values(MINIONS)[0]);
+        }
+
+        function scrollCharacterSelection(direction = 'down') {
+            const selectionScreen = document.getElementById('screen-char-select');
+            if (!selectionScreen) return;
+            const distance = Math.max(280, Math.floor(selectionScreen.clientHeight * 0.72));
+            selectionScreen.scrollBy({
+                top: direction === 'up' ? -distance : distance,
+                behavior: 'smooth'
+            });
+        }
+
+        function previewMinionIn3D(minionData) {
+            if (previewMeshGroup) scene.remove(previewMeshGroup);
+            previewMeshGroup = build3DMinionMesh(minionData);
+            
+            if (minionData.skills[0].weapon) {
+                const w = build3DWeapon(minionData.skills[0].weapon);
+                previewMeshGroup.userData.weaponSocket.add(w);
+                previewMeshGroup.userData.rightArm.rotation.x = -Math.PI / 3;
+            }
+
+            previewMeshGroup.position.set(0, 0, 0);
+            scene.add(previewMeshGroup);
+
+            targetCamPos.set(0, 2.5, 6);
+            targetCamLook.set(0, 1.2, 0);
+        }
+
+        function deepCopy(obj) {
+            const copy = JSON.parse(JSON.stringify(obj));
+            copy.tempArmor = 0; copy.tempAtk = 0;
+            copy.statuses = []; // Active statuses array: fedido, congelado, etc.
+            return copy;
+        }
+
+        function selectChar(charId) {
+            const template = MINIONS[charId];
+            if (gameState.mode === 'story') {
+                if (!storyProgress.unlocked.includes(charId)) return;
+                storyProgress.heroId = charId;
+                saveStoryProgress();
+                startStoryScene();
+                return;
+            }
+            if (gameState.mode === 'pve') {
+                gameState.p1 = deepCopy(template);
+                const botOptions = Object.keys(MINIONS).filter(k => k !== charId);
+                const randomBotKey = botOptions.includes('evil') ? 'evil' : botOptions[0];
+                gameState.p2 = deepCopy(MINIONS[randomBotKey]);
+                gameState.p2.isAi = true;
+                startBattle();
+            } else {
+                if (gameState.selectingPlayer === 1) {
+                    gameState.p1 = deepCopy(template);
+                    gameState.selectingPlayer = 2;
+                    renderCharSelectGrid();
+                } else {
+                    gameState.p2 = deepCopy(template);
+                    startBattle();
+                }
+            }
+        }
+
+        function startBattle() {
+            if (previewMeshGroup) scene.remove(previewMeshGroup);
+            showScreen('screen-combat');
+            document.getElementById('timeline-hud').classList.remove('hidden');
+            document.getElementById('restart-midgame-btn').classList.remove('hidden');
+
+            if (p1MeshGroup) scene.remove(p1MeshGroup);
+            if (p2MeshGroup) scene.remove(p2MeshGroup);
+
+            p1MeshGroup = build3DMinionMesh(gameState.p1);
+            p1MeshGroup.position.set(-3.5, 0, 0);
+            p1MeshGroup.rotation.y = Math.PI / 3;
+            scene.add(p1MeshGroup);
+
+            p2MeshGroup = build3DMinionMesh(gameState.p2);
+            p2MeshGroup.position.set(3.5, 0, 0);
+            p2MeshGroup.rotation.y = -Math.PI / 3;
+            scene.add(p2MeshGroup);
+
+            targetCamPos.set(0, 4.5, 10);
+            targetCamLook.set(0, 1.5, 0);
+
+            gameState.round = 1; gameState.isAnimating = false;
+            gameState.p1.bananaCharge = 0;
+            gameState.p2.bananaCharge = 0;
+            document.getElementById('battle-log').innerHTML = '';
+            addLog(`🧪 <b>Batalha iniciada na arena 3D do Gru!</b>`);
+
+            gameState.activeTurn = gameState.p1.stats.initiative >= gameState.p2.stats.initiative ? 1 : 2;
+            audio.playVoice('bello');
+
+            updateTimeline();
+            renderUI();
+
+            if (gameState.activeTurn === 2 && gameState.p2.isAi) {
+                setTimeout(handleAiTurn, 1000);
+            }
+        }
+
+        // Reinicia os personagens sem perder o papel de IA do segundo jogador.
+        function resetMatchCharacters() {
+            const p1Id = gameState.p1.id;
+            const p2Id = gameState.p2.id;
+            const p2WasAi = gameState.mode === 'pve' || gameState.p2.isAi === true;
+
+            gameState.p1 = deepCopy(MINIONS[p1Id]);
+            gameState.p2 = deepCopy(MINIONS[p2Id]);
+            if (p2WasAi) gameState.p2.isAi = true;
+        }
+
+        function confirmRestartMatch() {
+            if (gameState.isAnimating) return;
+            if (gameState.mode === 'story') { restartStoryBattle(); return; }
+            resetMatchCharacters();
+            
+            // Clear active weapon attachments and status variables
+            if (p1MeshGroup && p1MeshGroup.userData) {
+                p1MeshGroup.userData.weaponSocket.clear();
+                p1MeshGroup.userData.isFarted = false;
+                p1MeshGroup.userData.isFrozen = false;
+                p1MeshGroup.userData.isShocked = false;
+            }
+            if (p2MeshGroup && p2MeshGroup.userData) {
+                p2MeshGroup.userData.weaponSocket.clear();
+                p2MeshGroup.userData.isFarted = false;
+                p2MeshGroup.userData.isFrozen = false;
+                p2MeshGroup.userData.isShocked = false;
+            }
+
+            startBattle();
+            addLog(`🔄 <b>A luta foi reiniciada! Vida e estados restaurados.</b>`);
+        }
+
+        function restartStoryBattle() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            startStoryBattle();
+        }
+
+        function updateTimeline() {
+            const container = document.getElementById('timeline-avatars');
+            const first = gameState.activeTurn === 1 ? gameState.p1 : gameState.p2;
+            const second = gameState.activeTurn === 1 ? gameState.p2 : gameState.p1;
+
+            container.innerHTML = `
+                <div class="px-2.5 py-0.5 rounded-full bg-yellow-400 text-slate-950 font-heading text-xs flex items-center gap-1 animate-pulse">
+                    <span>1º</span> <b>${first.name}</b>
+                </div>
+                <span class="text-slate-500 font-bold">→</span>
+                <div class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-heading text-xs flex items-center gap-1">
+                    <span>2º</span> <b>${second.name}</b>
+                </div>
+            `;
+        }
+
+        function renderUI() {
+            const p1 = gameState.p1; const p2 = gameState.p2;
+
+            document.getElementById('p1-hud-name').innerText = p1.name;
+            document.getElementById('p1-hud-hp-text').innerText = `${Math.max(0, p1.stats.hp)}/${p1.stats.maxHp}`;
+            document.getElementById('p1-hud-hp-bar').style.width = `${Math.max(0, (p1.stats.hp / p1.stats.maxHp) * 100)}%`;
+            document.getElementById('p1-hud-atk').innerText = p1.stats.attack + (p1.tempAtk || 0);
+            document.getElementById('p1-hud-def').innerText = p1.stats.defense + (p1.tempArmor || 0);
+            document.getElementById('p1-hud-spd').innerText = p1.stats.initiative;
+
+            document.getElementById('p2-hud-name').innerText = p2.name;
+            document.getElementById('p2-hud-hp-text').innerText = `${Math.max(0, p2.stats.hp)}/${p2.stats.maxHp}`;
+            document.getElementById('p2-hud-hp-bar').style.width = `${Math.max(0, (p2.stats.hp / p2.stats.maxHp) * 100)}%`;
+            document.getElementById('p2-hud-atk').innerText = p2.stats.attack + (p2.tempAtk || 0);
+            document.getElementById('p2-hud-def').innerText = p2.stats.defense + (p2.tempArmor || 0);
+            document.getElementById('p2-hud-spd').innerText = p2.stats.initiative;
+
+            renderStatusBadges('p1-status-badges', p1);
+            renderStatusBadges('p2-status-badges', p2);
+
+            updateMinionDamageState(p1MeshGroup, p1.stats.hp, p1.stats.maxHp);
+            updateMinionDamageState(p2MeshGroup, p2.stats.hp, p2.stats.maxHp);
+
+            const activeChar = gameState.activeTurn === 1 ? p1 : p2;
+            document.getElementById('active-player-tag').innerText = `Turno de: ${activeChar.name}`;
+
+            renderSkillButtons();
+        }
+
+        function renderStatusBadges(containerId, player) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            const isDirty = player.stats.hp < player.stats.maxHp * 0.7;
+            if (isDirty) {
+                container.innerHTML += `<span class="status-badge text-[9px] bg-amber-950/90 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded-md font-tech">🩹 Machucado</span>`;
+            }
+
+            player.statuses.forEach(st => {
+                if (st.type === 'farted') {
+                    container.innerHTML += `<span class="status-badge text-[9px] bg-green-950/90 text-green-300 border border-green-500/50 px-1.5 py-0.5 rounded-md font-tech">🤢 Fedido (${st.turns}t)</span>`;
+                }
+                if (st.type === 'frozen') {
+                    container.innerHTML += `<span class="status-badge text-[9px] bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 px-1.5 py-0.5 rounded-md font-tech">🧊 Congelado (${st.turns}t)</span>`;
+                }
+                if (st.type === 'shocked') {
+                    container.innerHTML += `<span class="status-badge text-[9px] bg-yellow-950/90 text-yellow-300 border border-yellow-500/50 px-1.5 py-0.5 rounded-md font-tech">⚡ Eletrocutado</span>`;
+                }
+            });
+        }
+
+        function renderSkillButtons() {
+            const container = document.getElementById('skills-container');
+            container.innerHTML = '';
+            const activeChar = gameState.activeTurn === 1 ? gameState.p1 : gameState.p2;
+            const isFrozen = activeChar.statuses.some(s => s.type === 'frozen');
+            const isDisabled = gameState.isAnimating || isFrozen || (gameState.activeTurn === 2 && gameState.p2.isAi);
+
+            activeChar.skills.forEach((skill, idx) => {
+                const btn = document.createElement('button');
+                const isCd = skill.currentCd > 0;
+                btn.className = `glass-btn p-2 rounded-xl flex flex-col justify-between text-left ${isCd || isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-yellow-400'}`;
+                btn.disabled = isCd || isDisabled;
+                btn.onclick = () => executeSkill(idx);
+
+                btn.innerHTML = `
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xl">${skill.icon}</span>
+                        ${isCd ? `<span class="text-[9px] bg-red-950 text-red-400 font-tech px-1.5 py-0.5 rounded">CD: ${skill.currentCd}t</span>` : ''}
+                    </div>
+                    <div class="font-heading text-xs text-yellow-300 truncate">${skill.name}</div>
+                    <div class="text-[9px] text-slate-300 truncate">${skill.desc}</div>
+                `;
+                container.appendChild(btn);
+            });
+
+            updateBananaChargePanel(activeChar);
+            if ((activeChar.bananaCharge || 0) >= 100) {
+                const bananaBtn = document.createElement('button');
+                bananaBtn.className = `col-span-3 rounded-xl border-2 border-yellow-300 bg-gradient-to-r from-yellow-500 via-yellow-300 to-lime-300 p-2 text-left text-slate-950 shadow-lg ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 animate-pulse'}`;
+                bananaBtn.disabled = isDisabled;
+                bananaBtn.onclick = executeBananaSpecial;
+                bananaBtn.innerHTML = `<div class="flex items-center gap-3"><span class="text-3xl">🍌</span><span class="flex-1"><b class="block font-heading text-sm">BANANA GIGANTE!</b><span class="block text-[10px] font-semibold">Especial carregado — causa dano massivo</span></span><span class="text-xs font-black">USAR ↗</span></div>`;
+                container.appendChild(bananaBtn);
+            }
+        }
+
+        function updateBananaChargePanel(character) {
+            const charge = Math.max(0, Math.min(100, character?.bananaCharge || 0));
+            const text = document.getElementById('banana-charge-text');
+            const bar = document.getElementById('banana-charge-bar');
+            const state = document.getElementById('banana-charge-state');
+            if (!text || !bar || !state) return;
+            text.textContent = `Carga ${charge}/100`;
+            bar.style.width = `${charge}%`;
+            if (charge >= 100) {
+                state.textContent = 'ESPECIAL PRONTO! Solte a banana gigante no oponente!';
+                state.className = 'mt-1 text-[9px] font-bold text-yellow-200';
+            } else {
+                state.textContent = `Cause dano para carregar o especial! Faltam ${100 - charge}.`;
+                state.className = 'mt-1 text-[9px] text-slate-400';
+            }
+        }
+
+        function executeBananaSpecial() {
+            if (gameState.isAnimating) return;
+            const attacker = gameState.activeTurn === 1 ? gameState.p1 : gameState.p2;
+            if ((attacker.bananaCharge || 0) < 100) return;
+            const turnAtStart = gameState.activeTurn;
+            const defender = turnAtStart === 1 ? gameState.p2 : gameState.p1;
+            const attackerMesh = turnAtStart === 1 ? p1MeshGroup : p2MeshGroup;
+            const defenderMesh = turnAtStart === 1 ? p2MeshGroup : p1MeshGroup;
+            if (!attackerMesh || !defenderMesh) return;
+
+            gameState.isAnimating = true;
+            attacker.bananaCharge = 0;
+            updateBananaChargePanel(attacker);
+            addLog(`🍌 <b>${attacker.name}</b> prepara o golpe supremo: <b>BANANA GIGANTE!</b>`);
+            audio.playVoice('banana');
+
+            const cine = document.getElementById('banana-cinematic');
+            const cineEyebrow = document.getElementById('banana-cine-eyebrow');
+            const cineTitle = document.getElementById('banana-cine-title');
+            const cineSubtitle = document.getElementById('banana-cine-subtitle');
+            const cineFruit = document.getElementById('banana-cine-fruit');
+            const setCineText = (eyebrow, title, subtitle, impact = false) => {
+                cineEyebrow.textContent = eyebrow;
+                cineTitle.textContent = title;
+                cineSubtitle.textContent = subtitle;
+                cine.classList.toggle('impact', impact);
+                // Re-dispara a animação do texto em cada batida da cutscene.
+                const copy = cine.querySelector('.cine-copy');
+                copy.style.animation = 'none';
+                void copy.offsetWidth;
+                copy.style.animation = '';
+            };
+            cineFruit.textContent = '🍌';
+            setCineText('ESPECIAL CARREGADO', `${attacker.name.toUpperCase()}!`, 'PREPARE-SE PARA O IMPACTO');
+            cine.classList.add('active');
+            targetCamPos.set(attackerMesh.position.x * 0.65, 2.7, 4.6);
+            targetCamLook.copy(attackerMesh.position).add(new THREE.Vector3(0, 1.25, 0));
+
+            // Pequena pausa dramática antes do disparo cinematográfico.
+            setTimeout(() => {
+                setCineText('ATAQUE SUPREMO', 'BANANA GIGANTE!', 'LANÇAMENTO EM CÂMERA LENTA');
+                const banana = new THREE.Group();
+                const bananaMat = new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.32, metalness: 0.02, emissive: 0x8a5a00, emissiveIntensity: 0.24 });
+                const peel = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.23, 14, 32, Math.PI * 1.18), bananaMat);
+                peel.rotation.z = Math.PI / 2;
+                banana.add(peel);
+                const tipMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.6 });
+                [-0.78, 0.78].forEach((x, i) => {
+                    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), tipMat);
+                    tip.position.set(x, i === 0 ? -0.22 : 0.22, 0);
+                    banana.add(tip);
+                });
+                banana.scale.setScalar(2.5);
+                const startPos = new THREE.Vector3();
+                attackerMesh.userData.weaponSocket.getWorldPosition(startPos);
+                banana.position.copy(startPos);
+                scene.add(banana);
+
+                const targetPos = defenderMesh.position.clone().add(new THREE.Vector3(0, 1.25, 0));
+                targetCamPos.set((attackerMesh.position.x + defenderMesh.position.x) * 0.5, 2.6, 5.4);
+                targetCamLook.copy(targetPos);
+                let progress = 0;
+                const flight = setInterval(() => {
+                    progress += 0.035;
+                    const t = Math.min(progress, 1);
+                    banana.position.lerpVectors(startPos, targetPos, t);
+                    banana.rotation.x += 0.2;
+                    banana.rotation.y += 0.3;
+                    banana.rotation.z += 0.16;
+                    banana.position.y += Math.sin(progress * Math.PI) * 0.07;
+                    if (progress >= 1) {
+                        clearInterval(flight);
+                        scene.remove(banana);
+                        trigger3DParticleEffect(defenderMesh.position, 'banana');
+                        setMinionExpression(defenderMesh, 'pain', 1500);
+                        defenderMesh.position.x += turnAtStart === 1 ? 0.48 : -0.48;
+                        setTimeout(() => { defenderMesh.position.x = turnAtStart === 1 ? 3.5 : -3.5; }, 220);
+
+                        const rawDamage = Math.max(32, Math.round((attacker.stats.attack + (attacker.tempAtk || 0)) * 1.65 - (defender.stats.defense + (defender.tempArmor || 0)) * 0.22 + (attacker.storySkillBonus || 0) + 18));
+                        const hpBefore = Math.max(0, defender.stats.hp);
+                        const actualDamage = Math.min(rawDamage, hpBefore);
+                        defender.stats.hp = Math.max(0, defender.stats.hp - rawDamage);
+                        attacker.bananaCharge = Math.min(100, (attacker.bananaCharge || 0) + actualDamage);
+                        showFloatingText(turnAtStart === 1 ? 75 : 25, `🍌 -${rawDamage}!`, 'text-yellow-300');
+                        audio.playExplosion();
+                        renderUI();
+                        targetCamPos.set(defenderMesh.position.x * 0.55, 2.3, 4.2);
+                        targetCamLook.copy(defenderMesh.position).add(new THREE.Vector3(0, 1.1, 0));
+
+                        if (defender.stats.hp <= 0) {
+                            // Finalização cartunesca: o oponente vira uma chuva de mini-bananinhas.
+                            cineFruit.textContent = '💥🍌✨';
+                            setCineText('FINALIZAÇÃO ESPECIAL', 'BANANA FATALITY!', `${defender.name.toUpperCase()} VIROU BANANINHAS!`, true);
+                            addLog(`💥 <b class="text-yellow-300">BANANA FATALITY!</b> ${attacker.name} transformou ${defender.name} numa chuva de bananinhas!`);
+                            setMinionExpression(defenderMesh, 'pain', 2200);
+
+                            // Flash de impacto e anel de energia amarelo.
+                            const burstOrigin = defenderMesh.position.clone().add(new THREE.Vector3(0, 1.15, 0));
+                            trigger3DParticleEffect(burstOrigin, 'banana');
+                            const bananaBits = [];
+                            const miniBananaMat = new THREE.MeshStandardMaterial({
+                                color: 0xffd21f, roughness: 0.3, metalness: 0.02,
+                                emissive: 0x9a6500, emissiveIntensity: 0.35
+                            });
+                            const miniTipMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.55 });
+                            for (let i = 0; i < 22; i++) {
+                                const bit = new THREE.Group();
+                                const curve = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.085, 8, 14, Math.PI * 1.18), miniBananaMat);
+                                curve.rotation.z = Math.PI / 2;
+                                bit.add(curve);
+                                const tipA = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 7), miniTipMat);
+                                tipA.position.set(-0.25, -0.07, 0);
+                                const tipB = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 7), miniTipMat);
+                                tipB.position.set(0.25, 0.07, 0);
+                                bit.add(tipA, tipB);
+                                bit.position.copy(burstOrigin);
+                                bit.scale.setScalar(0.55 + Math.random() * 0.45);
+                                scene.add(bit);
+                                const angle = (Math.PI * 2 * i / 22) + (Math.random() - 0.5) * 0.35;
+                                const speed = 2.2 + Math.random() * 3.2;
+                                bananaBits.push({
+                                    mesh: bit,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: 1.8 + Math.random() * 4.0,
+                                    vz: (Math.random() - 0.5) * 3.8,
+                                    spinX: (Math.random() - 0.5) * 0.35,
+                                    spinY: (Math.random() - 0.5) * 0.4,
+                                    spinZ: (Math.random() - 0.5) * 0.5
+                                });
+                            }
+                            // Esconde o personagem durante a explosão para dar a ilusão de transformação.
+                            defenderMesh.visible = false;
+                            let burstFrames = 0;
+                            const bananaBurst = setInterval(() => {
+                                burstFrames++;
+                                bananaBits.forEach(bit => {
+                                    bit.vy -= 0.095;
+                                    bit.mesh.position.x += bit.vx * 0.024;
+                                    bit.mesh.position.y += bit.vy * 0.024;
+                                    bit.mesh.position.z += bit.vz * 0.024;
+                                    bit.mesh.rotation.x += bit.spinX;
+                                    bit.mesh.rotation.y += bit.spinY;
+                                    bit.mesh.rotation.z += bit.spinZ;
+                                });
+                                if (burstFrames >= 68) {
+                                    clearInterval(bananaBurst);
+                                    bananaBits.forEach(bit => scene.remove(bit.mesh));
+                                }
+                            }, 24);
+                            setTimeout(() => {
+                                clearInterval(bananaBurst);
+                                bananaBits.forEach(bit => scene.remove(bit.mesh));
+                                defenderMesh.visible = true;
+                                cine.classList.remove('active', 'impact');
+                                targetCamPos.set(0, 4.5, 10);
+                                targetCamLook.set(0, 1.5, 0);
+                                gameState.isAnimating = false;
+                                finishGame(turnAtStart);
+                            }, 1900);
+                        } else {
+                            cineFruit.textContent = '💥🍌';
+                            setCineText('IMPACTO TOTAL', 'BANANA GIGANTE!', `${defender.name.toUpperCase()} RECEBEU ${rawDamage} DE DANO!`, true);
+                            addLog(`💥 <b>BANANA GIGANTE!</b> ${defender.name} recebeu <b class="text-yellow-300">${rawDamage} de dano</b>!`);
+                            setTimeout(() => {
+                                cine.classList.remove('active', 'impact');
+                                targetCamPos.set(0, 4.5, 10);
+                                targetCamLook.set(0, 1.5, 0);
+                                gameState.isAnimating = false;
+                                advanceTurn();
+                            }, 1350);
+                        }
+                    }
+                }, 24);
+            }, 1050);
+        }
+
+        /* ==========================================================================
+           8. DYNAMIC 3D WEAPON & ATTACK ANIMATION SEQUENCER WITH STATUS EFFECTS
+           ========================================================================== */
+
+        function executeSkill(skillIdx) {
+            if (gameState.isAnimating) return;
+            gameState.isAnimating = true;
+
+            const attacker = gameState.activeTurn === 1 ? gameState.p1 : gameState.p2;
+            const defender = gameState.activeTurn === 1 ? gameState.p2 : gameState.p1;
+            const attackerMesh = gameState.activeTurn === 1 ? p1MeshGroup : p2MeshGroup;
+            const defenderMesh = gameState.activeTurn === 1 ? p2MeshGroup : p1MeshGroup;
+
+            const skill = attacker.skills[skillIdx];
+            skill.currentCd = skill.cooldown || (skillIdx === 1 ? 2 : skillIdx === 2 ? 3 : 0);
+
+            // Step 1: Equip 3D Weapon into hand socket
+            const socket = attackerMesh.userData.weaponSocket;
+            socket.clear();
+            if (skill.weapon) {
+                const wMesh = build3DWeapon(skill.weapon);
+                socket.add(wMesh);
+            }
+
+            // Step 2: Cinematic Camera Aiming Over Shoulder
+            const camOffsetX = gameState.activeTurn === 1 ? -4.5 : 4.5;
+            targetCamPos.set(attackerMesh.position.x + camOffsetX, 3.2, 5.5);
+            targetCamLook.copy(defenderMesh.position);
+
+            // Step 3: Raise Arm Animation & Aim Weapon
+            let frame = 0;
+            const aimInterval = setInterval(() => {
+                frame += 0.1;
+                attackerMesh.userData.rightArm.rotation.x = THREE.MathUtils.lerp(0, -Math.PI / 2.2, frame);
+
+                if (frame >= 1) {
+                    clearInterval(aimInterval);
+
+                    // Step 4: Fire 3D Projectile / Energy Beam
+                    fire3DWeaponProjectile(attackerMesh, defenderMesh, skill, () => {
+                        
+                        // Calculate Damage
+                        let damage = 0;
+                        const isCrit = Math.random() * 100 <= attacker.stats.critChance;
+                        const critMult = isCrit ? 1.6 : 1.0;
+                        const totalAtk = attacker.stats.attack + (attacker.tempAtk || 0);
+                        const totalDef = defender.stats.defense + (defender.tempArmor || 0);
+
+                        if (['fart_gun', 'freeze_ray', 'rocket', 'ukulele', 'laser_gun', 'teddy_smash', 'crown_laser', 'toxic_vomit', 'purple_beam', 'rock_cannon', 'lifesteal', 'ukulele_shock'].includes(skill.type)) {
+                            damage = Math.max(6, Math.round((totalAtk * (skill.mult || 1.1) * critMult) - (totalDef * 0.35) + (attacker.storySkillBonus || 0)));
+                            const hpBeforeHit = Math.max(0, defender.stats.hp);
+                            const actualDamage = Math.min(damage, hpBeforeHit);
+                            defender.stats.hp = Math.max(0, defender.stats.hp - damage);
+                            setMinionExpression(defenderMesh, isCrit ? 'pain' : 'pain', isCrit ? 1250 : 900);
+                            attacker.bananaCharge = Math.min(100, (attacker.bananaCharge || 0) + actualDamage);
+                            updateBananaChargePanel(attacker);
+
+                            // Apply Dynamic Status Effects & Visual Materials
+                            if (skill.type === 'fart_gun') {
+                                audio.playFartGun();
+                                audio.playVoice('cough');
+                                defenderMesh.userData.isFarted = true;
+                                defender.statuses = defender.statuses.filter(s => s.type !== 'farted');
+                                defender.statuses.push({ type: 'farted', turns: 2 });
+                                addLog(`🤢 <b>${defender.name}</b> foi envenenado pela nuvem de peido verde!`);
+                            }
+                            else if (skill.type === 'freeze_ray') {
+                                audio.playFreeze();
+                                defenderMesh.userData.isFrozen = true;
+                                defender.statuses = defender.statuses.filter(s => s.type !== 'frozen');
+                                defender.statuses.push({ type: 'frozen', turns: 1 });
+                                addLog(`🧊 <b>${defender.name}</b> foi congelado em um bloco de gelo!`);
+                            }
+                            else if (skill.type === 'ukulele_shock' || skill.type === 'ukulele') {
+                                audio.playLaser();
+                                defenderMesh.userData.isShocked = true;
+                                defender.statuses = defender.statuses.filter(s => s.type !== 'shocked');
+                                defender.statuses.push({ type: 'shocked', turns: 1 });
+                                addLog(`⚡ <b>${defender.name}</b> sofreu choque elétrico!`);
+                            }
+                            else if (isCrit) audio.playExplosion();
+                            else audio.playLaser();
+
+                            if (isCrit) {
+                                showFloatingText(gameState.activeTurn === 1 ? 75 : 25, `💥 CRÍTICO! -${damage}`, 'text-yellow-300');
+                                addLog(`🔥 <b>${attacker.name}</b> usou <b>${skill.name}</b>: <b class="text-yellow-300">${damage} CRÍTICO</b>!`);
+                            } else {
+                                showFloatingText(gameState.activeTurn === 1 ? 75 : 25, `-${damage}`, 'text-red-400');
+                                addLog(`⚔️ <b>${attacker.name}</b> usou <b>${skill.name}</b>: <b class="text-red-400">${damage} de dano</b>.`);
+                            }
+
+                            if (skill.type === 'lifesteal') {
+                                const healAmt = Math.round(damage * 0.5);
+                                attacker.stats.hp = Math.min(attacker.stats.maxHp, attacker.stats.hp + healAmt);
+                                showFloatingText(gameState.activeTurn === 1 ? 25 : 75, `+${healAmt} HP`, 'text-emerald-400');
+                            }
+                        }
+                        else if (skill.type === 'jelly_gun') {
+                            // Healing / Cleaning Skill
+                            const healAmt = skill.heal || 35;
+                            attacker.stats.hp = Math.min(attacker.stats.maxHp, attacker.stats.hp + healAmt);
+                            attacker.statuses = []; // Cleans all status effects
+                            attackerMesh.userData.isFarted = false;
+                            attackerMesh.userData.isFrozen = false;
+                            attackerMesh.userData.isShocked = false;
+                            audio.playVoice('banana');
+                            showFloatingText(gameState.activeTurn === 1 ? 25 : 75, `+${healAmt} HP (Limpo!)`, 'text-emerald-400');
+                            addLog(`🍯 <b>${attacker.name}</b> usou geléia curativa, restaurou HP e limpou o corpo!`);
+                        }
+                        else if (skill.type === 'buff_def') {
+                            attacker.tempArmor = (attacker.tempArmor || 0) + skill.val;
+                            attacker.statuses = []; // Shield also cleans statuses
+                            attackerMesh.userData.isFarted = false;
+                            attackerMesh.userData.isFrozen = false;
+                            audio.playVoice('beedo');
+                            showFloatingText(gameState.activeTurn === 1 ? 25 : 75, `+${skill.val} DEF`, 'text-cyan-300');
+                            addLog(`🛡 <b>${attacker.name}</b> ativou escudo magnético e removeu sujeira.`);
+                        }
+
+                        // Step 5: Recoil, Holster Weapon and Reset Camera
+                        setTimeout(() => {
+                            let unarm = 0;
+                            const lowerArm = setInterval(() => {
+                                unarm += 0.1;
+                                attackerMesh.userData.rightArm.rotation.x = THREE.MathUtils.lerp(-Math.PI / 2.2, 0, unarm);
+                                if (unarm >= 1) {
+                                    clearInterval(lowerArm);
+                                    socket.clear();
+                                    targetCamPos.set(0, 4.5, 10);
+                                    targetCamLook.set(0, 1.5, 0);
+
+                                    if (defender.stats.hp <= 0) {
+                                        setTimeout(() => finishGame(gameState.activeTurn), 500);
+                                        return;
+                                    }
+
+                                    advanceTurn();
+                                }
+                            }, 20);
+                        }, 300);
+
+                    });
+                }
+            }, 20);
+        }
+
+        // Cria um projétil visual diferente para cada família de ataque.
+        function buildAttackProjectile(skill) {
+            const type = skill.type;
+            const group = new THREE.Group();
+            const mat = (color, emissive = color, intensity = 0.35, transparent = false, opacity = 1) =>
+                new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: intensity, roughness: 0.32, metalness: 0.12, transparent, opacity });
+            const addMesh = (geometry, material, position = [0, 0, 0], scale = [1, 1, 1]) => {
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(position[0], position[1], position[2]);
+                mesh.scale.set(scale[0], scale[1], scale[2]);
+                group.add(mesh);
+                return mesh;
+            };
+
+            if (type === 'rocket') {
+                // Foguete com nariz, aletas e chama.
+                const body = addMesh(new THREE.CylinderGeometry(0.16, 0.2, 0.78, 10), mat(0xe5e7eb, 0x64748b, 0.2));
+                body.rotation.z = Math.PI / 2;
+                const nose = addMesh(new THREE.ConeGeometry(0.2, 0.32, 10), mat(0xef4444, 0x7f1d1d, 0.25), [0.53, 0, 0]);
+                nose.rotation.z = -Math.PI / 2;
+                [-1, 1].forEach(side => {
+                    const fin = addMesh(new THREE.BoxGeometry(0.2, 0.08, 0.28), mat(0x2563eb), [-0.28, side * 0.16, 0]);
+                    fin.rotation.z = side * 0.35;
+                });
+                const flame = addMesh(new THREE.ConeGeometry(0.13, 0.42, 8), mat(0xfb923c, 0xf97316, 1), [-0.55, 0, 0]);
+                flame.rotation.z = Math.PI / 2;
+                group.userData.visualKind = 'rocket';
+            } else if (type === 'freeze_ray') {
+                addMesh(new THREE.OctahedronGeometry(0.34, 1), mat(0x7dd3fc, 0x38bdf8, 1, true, 0.88), [0, 0, 0], [0.72, 1.45, 0.72]);
+                addMesh(new THREE.OctahedronGeometry(0.18, 0), mat(0xe0f2fe, 0x7dd3fc, 1), [0, 0, 0]);
+                group.userData.visualKind = 'ice';
+            } else if (type === 'fart_gun' || type === 'toxic_vomit') {
+                const toxic = type === 'toxic_vomit';
+                const color = toxic ? 0xa855f7 : 0x22c55e;
+                const cloudMat = mat(color, color, 0.8, true, 0.82);
+                [[0,0,0,0.27],[0.2,0.08,0.02,0.21],[-0.16,0.12,0.04,0.2],[0.05,-0.12,0.06,0.18]].forEach(a => {
+                    addMesh(new THREE.SphereGeometry(0.3, 10, 10), cloudMat, [a[0],a[1],a[2]], [a[3]/0.3, a[3]/0.3, a[3]/0.3]);
+                });
+                group.userData.visualKind = toxic ? 'toxic' : 'cloud';
+            } else if (type === 'ukulele' || type === 'ukulele_shock') {
+                const color = type === 'ukulele_shock' ? 0xfacc15 : 0x67e8f9;
+                for (let i = 0; i < 3; i++) {
+                    const ring = addMesh(new THREE.TorusGeometry(0.23 + i * 0.1, 0.035, 8, 20), mat(color, color, 1, true, 0.92));
+                    ring.rotation.y = Math.PI / 2;
+                }
+                group.userData.visualKind = 'sonic';
+            } else if (type === 'laser_gun' || type === 'crown_laser' || type === 'purple_beam') {
+                const color = type === 'purple_beam' ? 0xc084fc : type === 'crown_laser' ? 0xfacc15 : 0x38bdf8;
+                const beam = addMesh(new THREE.CylinderGeometry(0.13, 0.13, 1.35, 12), mat(color, color, 1, true, 0.9));
+                beam.rotation.z = Math.PI / 2;
+                addMesh(new THREE.SphereGeometry(0.19, 12, 12), mat(0xffffff, color, 1), [0.68, 0, 0]);
+                group.userData.visualKind = 'beam';
+            } else if (type === 'jelly_gun') {
+                addMesh(new THREE.SphereGeometry(0.29, 14, 12), mat(0xec4899, 0xbe185d, 0.7, true, 0.9), [0,0,0], [1.15,0.85,0.95]);
+                addMesh(new THREE.SphereGeometry(0.1, 8, 8), mat(0xfce7f3, 0xf9a8d4, 0.7), [0.08,0.16,0.18]);
+                group.userData.visualKind = 'jelly';
+            } else if (type === 'rock_cannon') {
+                addMesh(new THREE.IcosahedronGeometry(0.3, 0), mat(0x78716c, 0x44403c, 0.2));
+                group.userData.visualKind = 'rock';
+            } else if (type === 'teddy_smash') {
+                const fur = mat(0x9a5b35, 0x5b321c, 0.15);
+                addMesh(new THREE.SphereGeometry(0.23, 12, 12), fur, [0,0,0], [1.05,1,0.85]);
+                addMesh(new THREE.SphereGeometry(0.12, 10, 10), fur, [-0.2,0.18,0]);
+                addMesh(new THREE.SphereGeometry(0.12, 10, 10), fur, [0.2,0.18,0]);
+                addMesh(new THREE.SphereGeometry(0.055, 8, 8), mat(0xfef3c7), [0,0.02,0.2]);
+                group.userData.visualKind = 'teddy';
+            } else if (type === 'lifesteal') {
+                addMesh(new THREE.IcosahedronGeometry(0.29, 1), mat(0xef4444, 0x991b1b, 1));
+                for (let i = 0; i < 3; i++) {
+                    const orb = addMesh(new THREE.SphereGeometry(0.07, 8, 8), mat(0xfca5a5, 0xef4444, 1), [Math.cos(i * 2.1) * 0.38, Math.sin(i * 2.1) * 0.25, 0]);
+                    orb.userData.orbit = i * 2.1;
+                }
+                group.userData.visualKind = 'lifesteal';
+            } else {
+                // Projétil padrão com núcleo brilhante e aro externo.
+                addMesh(new THREE.SphereGeometry(0.24, 12, 12), mat(0xfacc15, 0xf59e0b, 0.9));
+                const ring = addMesh(new THREE.TorusGeometry(0.32, 0.035, 8, 18), mat(0xfef08a, 0xfacc15, 1, true, 0.9));
+                ring.rotation.y = Math.PI / 2;
+                group.userData.visualKind = 'energy';
+            }
+            return group;
+        }
+
+        function fire3DWeaponProjectile(attackerMesh, defenderMesh, skill, onImpact) {
+            const startPos = new THREE.Vector3();
+            attackerMesh.userData.weaponSocket.getWorldPosition(startPos);
+            const targetPos = defenderMesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+            const projectile = buildAttackProjectile(skill);
+            projectile.position.copy(startPos);
+            // Os objetos compridos apontam sempre na direção do alvo.
+            if (gameState.activeTurn === 1) projectile.rotation.z = 0;
+            else projectile.rotation.z = Math.PI;
+            scene.add(projectile);
+
+            // Habilidades de suporte também ganham um efeito visual ao redor do Minion que as usa.
+            let supportRing = null;
+            if (skill.type === 'jelly_gun' || skill.type === 'buff_def') {
+                const ringColor = skill.type === 'buff_def' ? 0x22d3ee : 0xf472b6;
+                supportRing = new THREE.Mesh(
+                    new THREE.TorusGeometry(skill.type === 'buff_def' ? 0.78 : 0.62, 0.055, 8, 32),
+                    new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.9 })
+                );
+                supportRing.rotation.x = Math.PI / 2;
+                supportRing.position.copy(attackerMesh.position).add(new THREE.Vector3(0, 0.55, 0));
+                scene.add(supportRing);
+                let pulse = 0;
+                const pulseTimer = setInterval(() => {
+                    pulse += 0.18;
+                    supportRing.scale.setScalar(1 + Math.sin(pulse) * 0.14);
+                    supportRing.material.opacity = Math.max(0, 0.9 - pulse / 9);
+                    if (pulse >= 7) {
+                        clearInterval(pulseTimer);
+                        scene.remove(supportRing);
+                        supportRing.geometry.dispose();
+                        supportRing.material.dispose();
+                    }
+                }, 30);
+            }
+
+            let progress = 0;
+            const direction = gameState.activeTurn === 1 ? 1 : -1;
+            const flyInterval = setInterval(() => {
+                progress += skill.type === 'rocket' ? 0.065 : skill.type === 'laser_gun' || skill.type === 'crown_laser' || skill.type === 'purple_beam' ? 0.14 : 0.085;
+                const eased = 1 - Math.pow(1 - Math.min(progress, 1), 2);
+                projectile.position.lerpVectors(startPos, targetPos, eased);
+                const kind = projectile.userData.visualKind;
+                if (kind === 'rocket' || kind === 'rock' || kind === 'teddy' || kind === 'ice' || kind === 'jelly') {
+                    projectile.rotation.x += kind === 'rocket' ? 0.11 : 0.16;
+                    projectile.rotation.y += kind === 'rocket' ? 0.18 : 0.12;
+                }
+                if (kind === 'sonic') {
+                    const pulse = 0.75 + Math.sin(progress * 28) * 0.25;
+                    projectile.scale.setScalar(pulse);
+                }
+                if (kind === 'cloud' || kind === 'toxic') {
+                    projectile.rotation.y += 0.08;
+                    projectile.scale.setScalar(0.8 + Math.sin(progress * 20) * 0.16 + progress * 0.2);
+                }
+                if (kind === 'lifesteal') {
+                    projectile.rotation.x += 0.16;
+                    projectile.rotation.y += 0.22;
+                    projectile.children.slice(1).forEach((orb, i) => {
+                        const a = progress * 15 + i * 2.1;
+                        orb.position.set(Math.cos(a) * 0.36, Math.sin(a) * 0.24, Math.sin(a) * 0.2);
+                    });
+                }
+                // Pequenas faíscas/trilhas para deixar cada disparo mais legível.
+                if (Math.random() < (kind === 'rocket' ? 0.9 : kind === 'beam' || kind === 'sonic' ? 0.45 : 0.22)) {
+                    trigger3DParticleEffect(projectile.position, skill.type);
+                }
+
+                if (progress >= 1) {
+                    clearInterval(flyInterval);
+                    scene.remove(projectile);
+                    projectile.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                            else obj.material.dispose();
+                        }
+                    });
+
+                    // Impacto: efeito próprio da habilidade + reação de recuo do alvo.
+                    trigger3DParticleEffect(defenderMesh.position, skill.type);
+                    const originalX = defenderMesh.position.x;
+                    const recoil = gameState.activeTurn === 1 ? 0.38 : -0.38;
+                    let hitFrame = 0;
+                    const hitAnim = setInterval(() => {
+                        hitFrame += 1;
+                        defenderMesh.position.x = originalX + recoil * Math.sin((hitFrame / 8) * Math.PI);
+                        defenderMesh.rotation.z = Math.sin((hitFrame / 8) * Math.PI) * (skill.type === 'teddy_smash' || skill.type === 'rock_cannon' ? 0.14 : 0.07);
+                        if (hitFrame >= 8) {
+                            clearInterval(hitAnim);
+                            defenderMesh.position.x = originalX;
+                            defenderMesh.rotation.z = 0;
+                        }
+                    }, 16);
+                    onImpact();
+                }
+            }, 16);
+        }
+
+        function trigger3DParticleEffect(position, skillType) {
+            const pCount = ['rocket', 'teddy_smash', 'rock_cannon', 'banana'].includes(skillType) ? 68 : ['freeze_ray', 'ukulele_shock', 'crown_laser'].includes(skillType) ? 54 : 38;
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = new Float32Array(pCount * 3);
+            const pVel = [];
+
+            for (let i = 0; i < pCount; i++) {
+                pPos[i * 3] = position.x;
+                pPos[i * 3 + 1] = position.y + 1.2;
+                pPos[i * 3 + 2] = position.z;
+
+                pVel.push({
+                    x: (Math.random() - 0.5) * 0.38,
+                    y: Math.random() * 0.38,
+                    z: (Math.random() - 0.5) * 0.38
+                });
+            }
+
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            let color = 0xfacc15;
+            if (skillType === 'fart_gun') color = 0x16a34a;
+            if (skillType === 'freeze_ray') color = 0x38bdf8;
+            if (skillType === 'toxic_vomit' || skillType === 'purple_beam') color = 0x9333ea;
+            if (skillType === 'rocket') color = 0xf97316;
+            if (skillType === 'ukulele' || skillType === 'ukulele_shock') color = 0xfacc15;
+            if (skillType === 'laser_gun' || skillType === 'crown_laser') color = 0x67e8f9;
+            if (skillType === 'jelly_gun') color = 0xec4899;
+            if (skillType === 'rock_cannon' || skillType === 'teddy_smash') color = 0xd6a77a;
+            if (skillType === 'lifesteal') color = 0xef4444;
+            if (skillType === 'buff_def') color = 0x22d3ee;
+
+            const pMat = new THREE.PointsMaterial({ color, size: 0.3, transparent: true, opacity: 1 });
+            const pMesh = new THREE.Points(pGeo, pMat);
+            scene.add(pMesh);
+
+            particlesSystem.push({ mesh: pMesh, vel: pVel, life: 1.0 });
+        }
+
+        function advanceTurn() {
+            const activeChar = gameState.activeTurn === 1 ? gameState.p1 : gameState.p2;
+            const activeMesh = gameState.activeTurn === 1 ? p1MeshGroup : p2MeshGroup;
+
+            // Decrement Skill Cooldowns
+            activeChar.skills.forEach(s => { if (s.currentCd > 0) s.currentCd--; });
+
+            // Tick Status Effects
+            for (let i = activeChar.statuses.length - 1; i >= 0; i--) {
+                const st = activeChar.statuses[i];
+                st.turns--;
+                if (st.turns <= 0) {
+                    if (st.type === 'farted') activeMesh.userData.isFarted = false;
+                    if (st.type === 'frozen') activeMesh.userData.isFrozen = false;
+                    if (st.type === 'shocked') activeMesh.userData.isShocked = false;
+                    activeChar.statuses.splice(i, 1);
+                    addLog(`✨ <b>${activeChar.name}</b> se recuperou do status!`);
+                }
+            }
+
+            gameState.activeTurn = gameState.activeTurn === 1 ? 2 : 1;
+            if (gameState.activeTurn === 1) gameState.round++;
+
+            gameState.isAnimating = false;
+            updateTimeline();
+            renderUI();
+
+            if (gameState.activeTurn === 2 && gameState.p2.isAi) {
+                setTimeout(handleAiTurn, 800);
+            }
+        }
+
+        function handleAiTurn() {
+            if (gameState.p2.stats.hp <= 0) return;
+            const bot = gameState.p2;
+            if ((bot.bananaCharge || 0) >= 100) {
+                executeBananaSpecial();
+                return;
+            }
+
+            // Check if frozen
+            if (bot.statuses.some(s => s.type === 'frozen')) {
+                addLog(`🧊 <b>${bot.name}</b> está congelado e perdeu o turno!`);
+                setTimeout(advanceTurn, 1000);
+                return;
+            }
+
+            const available = [];
+            bot.skills.forEach((s, idx) => { if ((s.currentCd || 0) === 0) available.push(idx); });
+
+            let chosen = available.includes(2) ? 2 : available.includes(1) && Math.random() > 0.4 ? 1 : 0;
+            executeSkill(chosen);
+        }
+
+        function showFloatingText(percentX, text, colorClass) {
+            const container = document.getElementById('ui-layer');
+            const elem = document.createElement('div');
+            elem.className = `floating-text ${colorClass} text-2xl font-bold`;
+            elem.innerText = text;
+            elem.style.left = `${percentX}%`;
+            elem.style.top = '35%';
+            container.appendChild(elem);
+            setTimeout(() => elem.remove(), 1200);
+        }
+
+        function toggleBattleLog() {
+            const panel = document.getElementById('battle-log-panel');
+            const button = document.getElementById('battle-log-toggle');
+            if (!panel || !button) return;
+            const isOpen = panel.classList.toggle('log-open');
+            button.textContent = isOpen ? '− Fechar' : '＋ Log';
+            button.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function addLog(msg) {
+            const logBox = document.getElementById('battle-log');
+            const p = document.createElement('p');
+            p.className = 'text-slate-200 border-b border-slate-800/80 pb-0.5';
+            p.innerHTML = msg;
+            logBox.appendChild(p);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function finishGame(winnerPlayerNum) {
+            const winner = winnerPlayerNum === 1 ? gameState.p1 : gameState.p2;
+            audio.playVictory();
+            const storyMode = gameState.mode === 'story';
+            const storyWon = storyMode && winnerPlayerNum === 1;
+            const panel = document.getElementById('story-reward-panel');
+            const continueBtn = document.getElementById('story-continue-btn');
+            const changeBtn = document.getElementById('victory-change-minion-btn');
+            panel.classList.add('hidden');
+            continueBtn.classList.add('hidden');
+            changeBtn.classList.remove('hidden');
+            document.getElementById('restart-midgame-btn').classList.add('hidden');
+
+            if (storyMode) {
+                if (storyWon && !storyProgress.rewardedChapters.includes(storyProgress.chapter)) {
+                    storyProgress.rewardedChapters.push(storyProgress.chapter);
+                    storyProgress.xp += 100;
+                    storyProgress.points += 1;
+                    const reward = STORY_CHAPTERS[storyProgress.chapter - 1].reward;
+                    if (reward && !storyProgress.unlocked.includes(reward)) storyProgress.unlocked.push(reward);
+                    if (storyProgress.chapter === STORY_CHAPTERS.length) storyProgress.completed = true;
+                    saveStoryProgress();
+                }
+                document.getElementById('winner-title').innerText = storyWon ? (storyProgress.chapter === 5 ? '🏆 CAMPANHA CONCLUÍDA!' : '🎬 CAPÍTULO CONCLUÍDO!') : '💥 TENTE NOVAMENTE';
+                document.getElementById('winner-desc').innerText = storyWon ? `Você venceu ${STORY_CHAPTERS[storyProgress.chapter - 1].bossName}! Sua equipe ficou mais forte.` : `${winner.name} venceu desta vez. Ajuste sua estratégia e tente o capítulo novamente.`;
+                const restartBtn = document.querySelector('#victory-modal button[onclick="restartMatch()"]');
+                restartBtn.textContent = storyWon ? '🔁 Repetir capítulo' : '⚔️ Tentar capítulo novamente';
+                changeBtn.textContent = '👤 Trocar Minion';
+                if (storyWon) {
+                    continueBtn.classList.remove('hidden');
+                    continueBtn.textContent = storyProgress.chapter === 5 ? '🏆 Ver resultado da campanha' : '➡️ Continuar história';
+                    renderStoryRewardPanel();
+                } else {
+                    panel.classList.add('hidden');
+                    continueBtn.classList.add('hidden');
+                }
+            } else {
+                document.getElementById('winner-title').innerText = `VITÓRIA DE ${winner.name.toUpperCase()}!`;
+                document.getElementById('winner-desc').innerText = `O campeão dominou o laboratório 3D do Gru!`;
+                const restartBtn = document.querySelector('#victory-modal button[onclick="restartMatch()"]');
+                restartBtn.textContent = '🔄 Jogar Novamente';
+                changeBtn.textContent = '👤 Escolher Outro Minion';
+            }
+            document.getElementById('victory-modal').classList.remove('hidden');
+        }
+
+        function storyContinueAfterVictory() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (storyProgress.completed && storyProgress.chapter === STORY_CHAPTERS.length) {
+                renderStoryCampaign();
+                showScreen('screen-story');
+                return;
+            }
+            storyProgress.chapter = Math.min(STORY_CHAPTERS.length, storyProgress.chapter + 1);
+            saveStoryProgress();
+            startStoryScene();
+        }
+
+        function restartMatch() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (gameState.mode === 'story') { startStoryBattle(); return; }
+            resetMatchCharacters();
+            startBattle();
+        }
+
+        // Fecha a tela de vitória e inicia uma nova seleção de personagens.
+        function chooseAnotherMinion() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (gameState.mode === 'story') { changeStoryHero(); return; }
+
+            // Remove os modelos da batalha anterior para não ficarem presos na arena.
+            if (p1MeshGroup) scene.remove(p1MeshGroup);
+            if (p2MeshGroup) scene.remove(p2MeshGroup);
+            if (previewMeshGroup) scene.remove(previewMeshGroup);
+            p1MeshGroup = null;
+            p2MeshGroup = null;
+            previewMeshGroup = null;
+
+            gameState.p1 = null;
+            gameState.p2 = null;
+            gameState.selectingPlayer = 1;
+            gameState.isAnimating = false;
+
+            showScreen('screen-char-select');
+        }
+
+        /* ==========================================================================
+           9. MAIN 3D ANIMATION & CONTINUOUS EMISSION LOOP
+           ========================================================================== */
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+
+            const time = Date.now() * 0.003;
+
+            if (previewMeshGroup) {
+                previewMeshGroup.rotation.y += 0.015;
+            }
+
+            // Idle floating / Status emissions
+            [p1MeshGroup, p2MeshGroup].forEach((mGroup) => {
+                if (!mGroup) return;
+                const u = mGroup.userData;
+
+                if (!u.isFrozen) {
+                    mGroup.position.y = Math.sin(time * 2 + (mGroup === p2MeshGroup ? 1 : 0)) * 0.08;
+                } else {
+                    mGroup.position.y = 0; // Frozen solid on floor
+                }
+
+                // Continuous Fart Gas Emissions
+                if (u.isFarted && Math.random() < 0.25) {
+                    trigger3DParticleEffect(mGroup.position, 'fart_gun');
+                }
+                // Continuous Electric Spark Emissions
+                if (u.isShocked && Math.random() < 0.3) {
+                    trigger3DParticleEffect(mGroup.position, 'ukulele');
+                }
+            });
+
+            camera.position.lerp(targetCamPos, 0.05);
+            currentCamLook.lerp(targetCamLook, 0.05);
+            camera.lookAt(currentCamLook);
+
+            for (let i = particlesSystem.length - 1; i >= 0; i--) {
+                const ps = particlesSystem[i];
+                ps.life -= 0.03;
+                const pos = ps.mesh.geometry.attributes.position.array;
+
+                for (let j = 0; j < ps.vel.length; j++) {
+                    pos[j * 3] += ps.vel[j].x;
+                    pos[j * 3 + 1] += ps.vel[j].y;
+                    pos[j * 3 + 2] += ps.vel[j].z;
+                }
+                ps.mesh.geometry.attributes.position.needsUpdate = true;
+                ps.mesh.material.opacity = ps.life;
+
+                if (ps.life <= 0) {
+                    scene.remove(ps.mesh);
+                    particlesSystem.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            init3D();
+        };
+
+    </script>
+</body>
+</html>
